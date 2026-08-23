@@ -19,13 +19,13 @@ const keyNameSize = 1.0;
 
 /// How far the name sits below the lowest stave's middle line, in staff spaces.
 /// Far enough to clear notes on ledger lines under the staff.
-const labelDrop = 5.0;
+const labelDrop = 5.72;
 
 /// How far the first name row sits below the lowest stave on a two-stave
 /// system: there is a second row under it, so it starts higher to keep both on
 /// screen. A single stave takes [labelDrop], putting its name exactly where
 /// every other mode puts one.
-const labelDropGrand = 3.2;
+const labelDropGrand = 3.92;
 
 /// Where the played-note readout hangs: its bottom edge this many staff spaces
 /// above the *top* stave's middle line. The name already fills the space under

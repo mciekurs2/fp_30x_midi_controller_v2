@@ -395,6 +395,25 @@ LH: | [D3 A3]w | [A2 E3]w |
       expect(tester.takeException(), isNull);
     });
 
+    testWidgets('the name hands over as the cursor moves, not as it lands', (
+      tester,
+    ) async {
+      final score = Score.song(song, PlayHands.both);
+      await pump(tester, StaffView(score: score, cursor: 1));
+      expect(find.text('F#4'), findsOneWidget);
+
+      await tester.pumpWidget(app(StaffView(score: score, cursor: 2)));
+      // One frame in, with the 340 ms scroll barely started: the next name is
+      // already on its way in. Reading the scroll instead of the cursor held it
+      // back until the scroll landed.
+      await tester.pump(const Duration(milliseconds: 16));
+      expect(find.text('G4'), findsOneWidget);
+
+      await tester.pumpAndSettle();
+      expect(find.text('G4'), findsOneWidget);
+      expect(find.text('F#4'), findsNothing);
+    });
+
     testWidgets('the score scrolls as the cursor advances', (tester) async {
       final score = Score.song(song, PlayHands.both);
       await pump(tester, StaffView(score: score));

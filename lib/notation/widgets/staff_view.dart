@@ -89,8 +89,7 @@ class _StaffViewState extends State<StaffView> {
   /// one that wants it be rewritten rather than keep the old spelling.
   final _writings = <int, _Writing>{};
 
-  ScoreMeasure get _scoreMeasure =>
-      _measure ??= ScoreMeasure(widget.score);
+  ScoreMeasure get _scoreMeasure => _measure ??= ScoreMeasure(widget.score);
 
   /// How the target before this one was written.
   ///
@@ -215,7 +214,9 @@ class _StaffViewState extends State<StaffView> {
         reverseDuration: _exit,
         switchInCurve: Curves.easeOutCirc,
         switchOutCurve: Curves.easeInCubic,
-        transitionBuilder: drop ? _dropTransition : AnimatedSwitcher.defaultTransitionBuilder,
+        transitionBuilder: drop
+            ? _dropTransition
+            : AnimatedSwitcher.defaultTransitionBuilder,
         child: child,
       );
 
@@ -386,12 +387,15 @@ class _StaffViewState extends State<StaffView> {
     return extra;
   }
 
-  Widget _extraClef(HeldNote? note, StaveLayout stave, Size size) => note == null
+  Widget _extraClef(HeldNote? note, StaveLayout stave, Size size) =>
+      note == null
       ? SizedBox.shrink(key: ValueKey('no-extra-clef-${stave.index}'))
       : CustomPaint(
           // Colour is left out on purpose: a key turning from wrong to right
           // repaints its clef rather than fading in a new one.
-          key: ValueKey('extra-clef-${stave.index}:${note.placement.clef.name}'),
+          key: ValueKey(
+            'extra-clef-${stave.index}:${note.placement.clef.name}',
+          ),
           size: size,
           painter: ClefPainter(
             staves: [
@@ -420,8 +424,9 @@ class _StaffViewState extends State<StaffView> {
   ) => {
     for (final stave in layout.staves)
       stave.index: [
-        for (final note in column.voices.elementAtOrNull(stave.index)?.notes ??
-            const <ScoreNote>[])
+        for (final note
+            in column.voices.elementAtOrNull(stave.index)?.notes ??
+                const <ScoreNote>[])
           note.placeOn(stave.clef, widget.score.spelling),
       ],
   };
@@ -478,8 +483,17 @@ class _StaffViewState extends State<StaffView> {
   /// so each row shows only the cursor's column, sliding as it advances.
   List<Widget> _labelRows(ScoreLayout layout, Size size, Color color) {
     if (layout.isEmpty) return const [];
+    // The name follows the cursor, not the scroll. `layout.base` is the
+    // *animated* position floored, so it only reaches the new column once the
+    // 340 ms scroll lands — which left the name a whole scroll behind the note
+    // it names. The centred modes have no scroll to wait on, so reading the
+    // cursor here is what makes every mode hand the name over at the same
+    // moment.
     final column =
-        widget.score.columns[layout.base.clamp(layout.first, layout.last)];
+        widget.score.columns[widget.cursor.clamp(
+          0,
+          widget.score.columns.length - 1,
+        )];
     final rowHeight =
         (labelSize + (widget.score.hasCaptions ? captionSize : 0)) * staffSpace;
     final top = layout.bottomStaveY + layout.labelDropSpaces * staffSpace;
@@ -576,7 +590,8 @@ String _columnSignature(ScoreColumn column) => [
 
 String _heldSignature(List<HeldNote> notes, Map<int, NoteValue> values) => [
   [for (final note in notes) note.note]..sort(),
-  [for (final entry in values.entries) '${entry.key}${entry.value.name}']..sort(),
+  [for (final entry in values.entries) '${entry.key}${entry.value.name}']
+    ..sort(),
 ].join('/');
 
 String _noteSignature(ScoreNote note) =>
