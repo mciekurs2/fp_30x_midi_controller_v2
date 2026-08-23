@@ -105,6 +105,18 @@ without the remembered writing the green note jumps clef or staff position the i
 target lands. A key the current column *asks for* is re-written its way, so one held from a
 flat chord into a sharp one that wants it gets re-spelled rather than sitting a step off.
 
+It keeps its **accidental column** the same way. `overlayColumns` deals the scored keys their
+columns *before* the target's, so a fresh target's accidentals fit around a held green note
+instead of shoving it left — v1 columned the target first and the green note jumped nearly two
+columns when a flat chord landed. The target still never shifts as *live* keys go down: those
+are fitted last. The cost is that releasing a scored key lets the target's accidentals close
+up, which is invisible in play because scoring and the next target land in the same event.
+
+The **name row follows the cursor, not the scroll.** `layout.base` is the animated scroll
+position floored, so in sheet music it only reaches the new column when the 340 ms scroll
+lands; reading it left the name a whole scroll behind the note it names. Centred modes have no
+scroll, which is why only sheet music showed it.
+
 ### Adding a game mode
 
 1. Add the value to `GameMode`, listing the `SettingKnob`s its settings sheet should offer.
@@ -124,11 +136,21 @@ this was a ten-site edit with no compiler help.)
 everything the staff draws → `GameStaffView`/`GameHud` render. One stream drives grading and
 display alike, which is what makes the game fully playable without a piano.
 
+Delivery lags the held set: the stream is broadcast, so a chord that arrives as one batch — a
+BLE packet carrying several messages, or the debug controls' Play note button — has every key
+in `NoteSource` state before the first press reaches `GameController`. **A key already in
+`_spent` is never graded again.** Without that, the press completing a chord scores the whole
+thing and the two behind it are graded against the *next* target and counted as misses: one
+right chord, one hit and two misses. `misses` is drawn nowhere but `VerdictMark`, so the only
+symptom was a cross over a chord you played correctly.
+
 ### Persistence
 
 `shared_preferences` behind `PreferencesService`, under the key prefixes `gamesettings_` and
 `highscore_`. Every read is defensive: an unrecognised enum name, an unparseable integer or an
-empty octave set falls back to a default rather than throwing during startup.
+empty octave set falls back to a default rather than throwing during startup. A value that is
+no longer *offered* falls back the same way — `hands` is read against `PlayHands.offered`, not
+`.values`, so an install that chose dual-hand before it was withheld does not keep playing it.
 
 ## The `.song` format (`assets/songs/`)
 
@@ -168,7 +190,10 @@ LH: | [D3 A3]w | [A2 E3]w |           # chords bracketed; w = whole note
 - **Enum dot-shorthands** (`.min`, `.center`, `.fromLTRB(...)`) are used throughout. Match the
   surrounding style.
 - **Notation geometry is copied from v1, not re-derived.** `staffScale = 330`,
-  `headroom = 3.93` and the rest of `StaffMetrics` are load-bearing.
+  `headroom = 3.93` and the rest of `StaffMetrics` are load-bearing. `labelDrop` /
+  `labelDropGrand` are the exception — tuned by eye for this app, and the knob to reach for
+  when the name row wants moving. Express any such tweak in staff spaces there, never as raw
+  pixels at the call site: `staffSpace` is what the whole notation scales by.
 - **Layout changes need a 360 dp widget test** that applies `withTextScale`, or an overflow
   will not be caught.
 - **`AnimatedSwitcher` keys must be value-equal.** Never key one on a `List`, a `Set` or a
@@ -177,7 +202,13 @@ LH: | [D3 A3]w | [A2 E3]w |           # chords bracketed; w = whole note
 
 ## Not yet ported (deliberately)
 
-Dual-hand mode, and a single-note version of the key-signature drill (the notation is all there
+Dual-hand sheet music is **built but withheld**: `PlayHands.both` works — `Score.song` draws
+the grand staff, `SongExercise` grades both hands, and tests cover it — but it is left out of
+`PlayHands.offered`, so the settings sheet never offers it and the store never restores it.
+Held keys still split at middle C rather than by the hand that asked, so a chord across the
+split grades against the wrong stave. Uncomment it in `offered` to put it back everywhere.
+
+Also unported: a single-note version of the key-signature drill (the notation is all there
 — chords-in-key uses it — it just is not a `GameMode`). Chord **variations** beyond major/minor
 triads as exercise targets: `chord_identifier` already recognises the full catalogue, but the
 chords mode deals root-position triads only.
@@ -185,8 +216,8 @@ chords mode deals root-position triads only.
 For sheet music: real **timing/tempo** (durations are encoded and drawn, but nothing is graded
 on rhythm — rounds are self-paced by design); grading against *sounding* notes, so a held
 half-note in one hand while the other plays eighths is handled; bar-scoped accidental
-persistence; cross-clef notes (each hand is pinned to its own stave, and held keys split at
-middle C regardless of which hand asked); and the image → `.song` transcription loop.
+persistence; cross-clef notes (each hand is pinned to its own stave); and the image → `.song`
+transcription loop.
 
 `riverpod_lint` is **not installed**: it needs `custom_lint`, pinned to `analyzer ^8`, while
 `riverpod_generator` 4.x needs `analyzer ^9`+. Re-check when bumping either.
