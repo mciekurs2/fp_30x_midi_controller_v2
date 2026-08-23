@@ -15,6 +15,10 @@ const _exit = Duration(milliseconds: 200);
 /// How far a note slides as it drops in / out, as a fraction of the scale.
 const _slide = 0.06;
 
+/// Held keys sit just back from the written notes, so the two read apart where
+/// one lands on the other.
+const _playedOpacity = 0.8;
+
 /// The one staff. It draws a [Score] — a single note, a chord, or a piece of
 /// sheet music — and the player's held keys over it.
 ///
@@ -250,28 +254,73 @@ class _StaffViewState extends State<StaffView> {
     );
 
     return [
-      CustomPaint(
-        size: size,
-        painter: OverlayPainter(
-          notes: live,
-          layout: layout,
-          values: _valuesFor(currentColumn, layout),
-          target: _placementsFor(currentColumn, layout),
-          x: layout.columnX(current),
-          clip: layout.alignment == ScoreAlignment.flowing,
+      Opacity(
+        opacity: _playedOpacity,
+        child: Stack(
+          fit: .expand,
+          children: [
+            ..._extraClefs(layout, [...live, ...pinned], size),
+            CustomPaint(
+              size: size,
+              painter: OverlayPainter(
+                notes: live,
+                layout: layout,
+                values: _valuesFor(currentColumn, layout),
+                target: _placementsFor(currentColumn, layout),
+                x: layout.columnX(current),
+                clip: layout.alignment == ScoreAlignment.flowing,
+              ),
+            ),
+            CustomPaint(
+              size: size,
+              painter: OverlayPainter(
+                notes: pinned,
+                layout: layout,
+                values: _valuesFor(pinnedColumn, layout),
+                target: _placementsFor(pinnedColumn, layout),
+                x: layout.lead + measure.extents[pinnedIndex].left * staffSpace,
+                clip: layout.alignment == ScoreAlignment.flowing,
+              ),
+            ),
+          ],
         ),
       ),
-      CustomPaint(
-        size: size,
-        painter: OverlayPainter(
-          notes: pinned,
-          layout: layout,
-          values: _valuesFor(pinnedColumn, layout),
-          target: _placementsFor(pinnedColumn, layout),
-          x: layout.lead + measure.extents[pinnedIndex].left * staffSpace,
-          clip: layout.alignment == ScoreAlignment.flowing,
+    ];
+  }
+
+  /// A held key still written in a clef the stave no longer carries brings that
+  /// clef along, so there is something to read it against.
+  ///
+  /// It happens when a key scored under one target and is held into the next:
+  /// it keeps the writing it was struck with, and the new target's clef may not
+  /// be the same one. Tinted by the lowest key carrying it.
+  List<Widget> _extraClefs(
+    ScoreLayout layout,
+    List<HeldNote> notes,
+    Size size,
+  ) {
+    final extra = <int, HeldNote>{};
+    for (final note in notes) {
+      if (note.placement.clef == layout.staves[note.stave].clef) continue;
+      final lowest = extra[note.stave];
+      if (lowest == null || note.note < lowest.note) extra[note.stave] = note;
+    }
+
+    return [
+      for (final entry in extra.entries)
+        CustomPaint(
+          size: size,
+          painter: ClefPainter(
+            staves: [
+              (
+                clef: entry.value.placement.clef,
+                centerY: layout.staves[entry.key].centerY,
+                index: entry.key,
+              ),
+            ],
+            color: entry.value.color,
+          ),
         ),
-      ),
     ];
   }
 

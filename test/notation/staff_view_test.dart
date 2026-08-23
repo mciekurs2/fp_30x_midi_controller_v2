@@ -86,6 +86,42 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('a key held across a target change keeps its writing', (
+    tester,
+  ) async {
+    Widget staffFor(Score score) => MaterialApp(
+      theme: ThemeData.dark(),
+      home: Scaffold(
+        body: Center(
+          child: SizedBox.fromSize(
+            size: _phone,
+            child: StaffView(
+              score: score,
+              // G3 is held throughout: it scored under the bass target and is
+              // still down when a treble one is dealt.
+              played: const {},
+              scored: const {55},
+            ),
+          ),
+        ),
+      ),
+    );
+
+    tester.view
+      ..physicalSize = _phone
+      ..devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(staffFor(Score.chord([55], label: 'G3')));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+
+    // The next target is in the treble, so the held key brings its own clef.
+    await tester.pumpWidget(staffFor(Score.chord([72], label: 'C5')));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
+
   group('sheet music', () {
     final song = parseSong('''
 title: Test
