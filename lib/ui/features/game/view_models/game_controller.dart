@@ -109,7 +109,12 @@ class GameController extends _$GameController {
     final exercise = _exercise;
     if (exercise == null) return;
 
-    if (event case NotePressed(:final note)) {
+    // A key that already scored is never graded a second time. A chord can
+    // reach the stream as one batch — every press lands in the held set before
+    // the first is delivered — so the press that completes it scores the whole
+    // chord, and the presses queued behind it would otherwise be graded against
+    // the *next* target and counted as misses.
+    if (event case NotePressed(:final note) when !_spent.contains(note)) {
       final held = _heldKeys();
       switch (exercise.grade(pressed: note, held: held)) {
         case Hit(:final scored):

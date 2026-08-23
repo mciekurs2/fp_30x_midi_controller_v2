@@ -67,6 +67,20 @@ class Rig {
     }
   }
 
+  /// Strikes every note of the current target in one batch — no pump between
+  /// the presses, so all of them land in the held set before the first reaches
+  /// the grader. That is what a BLE packet carrying a whole chord looks like,
+  /// and what the debug controls' "Play note" button does.
+  Future<List<int>> strike() async {
+    final targets = game.currentTargets();
+    final notes = container.read(noteSourceProvider.notifier);
+    for (final note in targets) {
+      notes.play(NotePressed(note, 80));
+    }
+    await pump();
+    return targets;
+  }
+
   Future<void> pump() => Future<void>.delayed(Duration.zero);
 
   void setMode(GameMode mode) =>
@@ -89,6 +103,32 @@ void main() {
     rig.game.stop();
     expect(rig.state.phase, GamePhase.finished);
     expect(rig.state.score, 1);
+  });
+
+  test('a chord struck at once scores once and misses nothing', () async {
+    for (final mode in GameMode.values) {
+      final rig = Rig();
+      rig.setMode(mode);
+      await rig.game.start();
+
+      final struck = await rig.strike();
+      expect(
+        rig.state.hits,
+        1,
+        reason: '${mode.title}: one target answered is one hit',
+      );
+      expect(
+        rig.state.misses,
+        0,
+        reason: '${mode.title}: the keys behind the one that scored the '
+            'target were graded against the next one',
+      );
+      expect(rig.state.verdict, Verdict.hit, reason: mode.title);
+
+      for (final note in struck) {
+        await rig.release(note);
+      }
+    }
   });
 
   test('a wrong key misses without scoring', () async {
