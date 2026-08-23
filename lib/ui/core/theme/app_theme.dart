@@ -6,6 +6,11 @@ const accentColor = Color(0xFFF9278D);
 /// A correctly played note, against the accent used for a wrong one.
 const successColor = Color(0xFF3DDC84);
 
+/// A press the round counts as right: the verdict star, and the readout naming
+/// the keys that earned it. Deliberately not [successColor] — the green marks a
+/// note *on the staff*, this marks the moment of scoring it.
+const hitColor = Colors.amber;
+
 /// Fill for the tonal buttons, against the black background.
 const buttonFillColor = Color(0xFF2C2C2C);
 

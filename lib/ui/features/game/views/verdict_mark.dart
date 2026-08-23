@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
+import '../../../core/theme/app_theme.dart';
 import '../view_models/game_controller.dart';
 import '../view_models/game_state.dart';
 
@@ -126,7 +127,7 @@ class _VerdictMarkState extends ConsumerState<VerdictMark>
               child: Icon(
                 isHit ? Icons.star_rounded : Icons.close_rounded,
                 size: isHit ? _starSize : _crossSize,
-                color: isHit ? Colors.amber : scheme.primary,
+                color: isHit ? hitColor : scheme.primary,
               ),
             ),
           ),

@@ -8,6 +8,7 @@ import 'package:fp_30x_midi_controller_v2/ui/features/game/view_models/game_cont
 import 'package:fp_30x_midi_controller_v2/ui/features/game/view_models/game_settings_controller.dart';
 import 'package:fp_30x_midi_controller_v2/ui/features/game/view_models/note_source.dart';
 import 'package:fp_30x_midi_controller_v2/ui/features/game/views/home_page.dart';
+import 'package:fp_30x_midi_controller_v2/ui/features/game/views/played_readout.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../support/fakes.dart';
@@ -127,6 +128,83 @@ void main() {
     }
     await tester.pumpAndSettle();
     expect(find.text('C'), findsWidgets);
+    expectNothingUnexpected(tester);
+  });
+
+  /// The colour the readout is naming the hand in, or `null` when it names
+  /// nothing. Mid-transition the switcher holds two, and the incoming one is
+  /// last.
+  Color? readoutColor(WidgetTester tester) => tester
+      .widgetList<Text>(
+        find.descendant(
+          of: find.byType(PlayedReadout),
+          matching: find.byType(Text),
+        ),
+      )
+      .lastOrNull
+      ?.style
+      ?.color;
+
+  /// A key the round is not asking for and has not already scored.
+  int wrongNote(Set<int> correct) => Iterable.generate(
+    88,
+    (i) => 21 + i,
+  ).firstWhere((note) => !correct.contains(note));
+
+  testWidgets('the readout marks a right hand in every mode', (tester) async {
+    await pump(tester);
+    final notes = container.read(noteSourceProvider.notifier);
+
+    for (final mode in GameMode.values) {
+      container.read(gameSettingsControllerProvider.notifier).setMode(mode);
+      await tester.pumpAndSettle();
+      await tap(tester, find.text('Play'));
+
+      final targets = container
+          .read(gameControllerProvider.notifier)
+          .currentTargets();
+      for (final note in targets) {
+        notes.play(NotePressed(note, 80));
+      }
+      await tester.pumpAndSettle();
+      expect(
+        readoutColor(tester),
+        successColor,
+        reason: '${mode.title}: a hand the round counts as right',
+      );
+      for (final note in targets) {
+        notes.play(NoteReleased(note));
+      }
+      await tester.pumpAndSettle();
+
+      final wrong = wrongNote(container.read(gameControllerProvider).correct);
+      notes.play(NotePressed(wrong, 80));
+      await tester.pumpAndSettle();
+      expect(
+        readoutColor(tester),
+        accentColor,
+        reason: '${mode.title}: a key the round is not asking for',
+      );
+      notes.play(NoteReleased(wrong));
+      await tester.pumpAndSettle();
+
+      expectNothingUnexpected(tester, reason: '${mode.title} threw');
+      if (find.text('Stop').evaluate().isNotEmpty) {
+        await tap(tester, find.text('Stop'));
+      }
+    }
+  });
+
+  testWidgets('the readout stays the accent with no round to grade it', (
+    tester,
+  ) async {
+    await pump(tester);
+    final notes = container.read(noteSourceProvider.notifier);
+    for (final note in [60, 64, 67]) {
+      notes.play(NotePressed(note, 80));
+    }
+    await tester.pumpAndSettle();
+    expect(readoutColor(tester), accentColor);
     expectNothingUnexpected(tester);
   });
 
