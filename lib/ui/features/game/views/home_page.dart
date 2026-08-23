@@ -43,29 +43,37 @@ class HomePage extends ConsumerWidget {
               alignment: .bottomCenter,
               child: Padding(
                 padding: .fromLTRB(12, 0, 12, 12),
+                // Both sides are flexible rather than one pushing the other
+                // out: at the app's 1.5x text scale the two do not both fit at
+                // their natural width on a 360 dp phone.
                 child: Row(
                   crossAxisAlignment: .end,
+                  mainAxisAlignment: .spaceBetween,
                   children: [
-                    Column(
-                      mainAxisSize: .min,
-                      crossAxisAlignment: .start,
-                      children: [
-                        PlayButton(),
-                        SizedBox(height: 8),
-                        GameControls(),
-                      ],
-                    ),
-                    Spacer(),
-                    Column(
-                      mainAxisSize: .min,
-                      crossAxisAlignment: .end,
-                      children: [
-                        if (kDebugMode) ...[
-                          TestControls(),
+                    Flexible(
+                      child: Column(
+                        mainAxisSize: .min,
+                        crossAxisAlignment: .start,
+                        children: [
+                          PlayButton(),
                           SizedBox(height: 8),
+                          GameControls(),
                         ],
-                        ConnectionBadge(),
-                      ],
+                      ),
+                    ),
+                    SizedBox(width: 8),
+                    Flexible(
+                      child: Column(
+                        mainAxisSize: .min,
+                        crossAxisAlignment: .end,
+                        children: [
+                          if (kDebugMode) ...[
+                            TestControls(),
+                            SizedBox(height: 8),
+                          ],
+                          ConnectionBadge(),
+                        ],
+                      ),
                     ),
                   ],
                 ),

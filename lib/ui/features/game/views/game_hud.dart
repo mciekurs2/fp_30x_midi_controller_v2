@@ -58,34 +58,40 @@ class GameHud extends ConsumerWidget {
 
     return Stack(
       children: [
+        // Both readings are flexible: at the app's 1.5x text scale a score with
+        // its saved top three beside it runs into the clock on a 360 dp phone.
         Row(
           crossAxisAlignment: .start,
           children: [
-            Column(
-              crossAxisAlignment: .start,
-              mainAxisSize: .min,
-              children: [
-                _Reading(
-                  caption: 'Score',
-                  value: '${round.score}',
-                  alignment: .start,
-                  animate: true,
-                  topScores: topScores,
-                ),
-                const Padding(
-                  padding: .only(top: 32),
-                  child: VerdictMark(),
-                ),
-              ],
+            Flexible(
+              child: Column(
+                crossAxisAlignment: .start,
+                mainAxisSize: .min,
+                children: [
+                  _Reading(
+                    caption: 'Score',
+                    value: '${round.score}',
+                    alignment: .start,
+                    animate: true,
+                    topScores: topScores,
+                  ),
+                  const Padding(
+                    padding: .only(top: 32),
+                    child: VerdictMark(),
+                  ),
+                ],
+              ),
             ),
-            const Spacer(),
-            _Reading(
-              caption: 'Time',
-              value: _formatTime(remaining),
-              alignment: .end,
-              color: remaining != null && remaining <= _urgent
-                  ? Theme.of(context).colorScheme.primary
-                  : null,
+            const SizedBox(width: 8),
+            Flexible(
+              child: _Reading(
+                caption: 'Time',
+                value: _formatTime(remaining),
+                alignment: .end,
+                color: remaining != null && remaining <= _urgent
+                    ? Theme.of(context).colorScheme.primary
+                    : null,
+              ),
             ),
           ],
         ),
@@ -184,7 +190,9 @@ class _Caption extends StatelessWidget {
     final style = theme.textTheme.titleMedium?.copyWith(
       color: theme.colorScheme.onSurfaceVariant,
     );
-    if (topScores.isEmpty) return Text(caption, style: style);
+    if (topScores.isEmpty) {
+      return Text(caption, style: style, maxLines: 1, overflow: .ellipsis);
+    }
 
     return Text.rich(
       TextSpan(
@@ -200,6 +208,8 @@ class _Caption extends StatelessWidget {
           ),
         ],
       ),
+      maxLines: 1,
+      overflow: .ellipsis,
     );
   }
 }

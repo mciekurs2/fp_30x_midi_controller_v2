@@ -65,14 +65,16 @@ class _TestControlsState extends ConsumerState<TestControls> {
     children: [
       // A Listener rather than the button's onPressed, so the note is down for
       // the whole press and released the moment the finger lifts.
-      Listener(
-        onPointerDown: (_) => _press(),
-        onPointerUp: (_) => _release(),
-        onPointerCancel: (_) => _release(),
-        child: FilledButton.tonalIcon(
-          onPressed: () {},
-          icon: const Icon(Icons.piano),
-          label: const Text('Play note'),
+      Flexible(
+        child: Listener(
+          onPointerDown: (_) => _press(),
+          onPointerUp: (_) => _release(),
+          onPointerCancel: (_) => _release(),
+          child: FilledButton.tonalIcon(
+            onPressed: () {},
+            icon: const Icon(Icons.piano),
+            label: const Text('Play note', maxLines: 1, overflow: .ellipsis),
+          ),
         ),
       ),
       IconButton.filledTonal(

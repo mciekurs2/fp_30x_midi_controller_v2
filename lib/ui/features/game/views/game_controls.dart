@@ -28,12 +28,16 @@ class GameControls extends ConsumerWidget {
       mainAxisSize: .min,
       spacing: sheetSpacing,
       children: [
-        FilledButton.tonalIcon(
-          onPressed: isRunning
-              ? null
-              : () => showAppSheet(context, const _ModeSheet()),
-          icon: const Icon(Icons.sports_esports),
-          label: Text(mode.title),
+        // Flexible with an ellipsis: at the app's 1.5x text scale the longest
+        // mode name runs past the edge of a 360 dp phone otherwise.
+        Flexible(
+          child: FilledButton.tonalIcon(
+            onPressed: isRunning
+                ? null
+                : () => showAppSheet(context, const _ModeSheet()),
+            icon: const Icon(Icons.sports_esports),
+            label: Text(mode.title, maxLines: 1, overflow: .ellipsis),
+          ),
         ),
         IconButton.filledTonal(
           onPressed: isRunning

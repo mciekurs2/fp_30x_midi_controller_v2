@@ -19,7 +19,7 @@ class ConnectionBadge extends ConsumerWidget {
     return FilledButton.tonalIcon(
       onPressed: ref.read(midiConnectionProvider.notifier).toggle,
       icon: Icon(Icons.circle, size: 12, color: color),
-      label: Text(label),
+      label: Text(label, maxLines: 1, overflow: .ellipsis),
     );
   }
 }
