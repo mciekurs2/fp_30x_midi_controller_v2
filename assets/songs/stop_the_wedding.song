@@ -1,0 +1,43 @@
+title: Stop the Wedding
+key: D major
+time: 4/4
+barlines: off
+
+# Chord chart, right hand only — one root-position triad per bar.
+# D major, so a written F is F# and a written C is C#.
+# D=[D4 F4 A4]  Em=[E4 G4 B4]  F#m=[F4 A4 C5]
+# G=[G4 B4 D5]  A=[A4 C5 E5]   Bm=[B4 D5 F5]
+
+# Intro: G A G A
+RH: [G4 B4 D5]w [A4 C5 E5]w [G4 B4 D5]w [A4 C5 E5]w
+
+# Verse 1: Bm F#m Em G A Bm F#m Em G
+RH: [B4 D5 F5]w [F4 A4 C5]w [E4 G4 B4]w [G4 B4 D5]w
+RH: [A4 C5 E5]w [B4 D5 F5]w [F4 A4 C5]w [E4 G4 B4]w
+RH: [G4 B4 D5]w
+
+# Chorus: D F#m G A D F#m G A
+RH: [D4 F4 A4]w [F4 A4 C5]w [G4 B4 D5]w [A4 C5 E5]w
+RH: [D4 F4 A4]w [F4 A4 C5]w [G4 B4 D5]w [A4 C5 E5]w
+
+# Verse 2: D F#m G A
+RH: [D4 F4 A4]w [F4 A4 C5]w [G4 B4 D5]w [A4 C5 E5]w
+
+# Chorus: D F#m G A D F#m G A
+RH: [D4 F4 A4]w [F4 A4 C5]w [G4 B4 D5]w [A4 C5 E5]w
+RH: [D4 F4 A4]w [F4 A4 C5]w [G4 B4 D5]w [A4 C5 E5]w
+
+# Post-chorus: D F#m G A
+RH: [D4 F4 A4]w [F4 A4 C5]w [G4 B4 D5]w [A4 C5 E5]w
+
+# Bridge: Bm F#m Em G A Bm F#m Em G A G
+RH: [B4 D5 F5]w [F4 A4 C5]w [E4 G4 B4]w [G4 B4 D5]w
+RH: [A4 C5 E5]w [B4 D5 F5]w [F4 A4 C5]w [E4 G4 B4]w
+RH: [G4 B4 D5]w [A4 C5 E5]w [G4 B4 D5]w
+
+# Chorus: D F#m G A D F#m G A
+RH: [D4 F4 A4]w [F4 A4 C5]w [G4 B4 D5]w [A4 C5 E5]w
+RH: [D4 F4 A4]w [F4 A4 C5]w [G4 B4 D5]w [A4 C5 E5]w
+
+# Outro: G A Bm A
+RH: [G4 B4 D5]w [A4 C5 E5]w [B4 D5 F5]w [A4 C5 E5]w
