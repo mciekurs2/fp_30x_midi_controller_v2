@@ -147,21 +147,23 @@ class Score {
     String? label,
     String? caption,
   }) {
-    if (notes.isEmpty) return Score.empty();
     final sorted = [...notes]..sort();
     return Score(
-      staves: [Stave(Clef.forNote(sorted.first))],
+      // With nothing to show the staff still carries its clef and signature:
+      // in chords-in-key the key is meant to be read before Play is pressed.
+      staves: [Stave(Clef.forNote(sorted.firstOrNull ?? 60))],
       columns: [
-        ScoreColumn(
-          voices: [
-            ScoreVoice(
-              notes: [for (final note in sorted) ScoreNote(note)],
-              value: value,
-              label: label,
-              caption: caption,
-            ),
-          ],
-        ),
+        if (sorted.isNotEmpty)
+          ScoreColumn(
+            voices: [
+              ScoreVoice(
+                notes: [for (final note in sorted) ScoreNote(note)],
+                value: value,
+                label: label,
+                caption: caption,
+              ),
+            ],
+          ),
       ],
       spelling: spelling,
       signatureKey: signatureKey,
