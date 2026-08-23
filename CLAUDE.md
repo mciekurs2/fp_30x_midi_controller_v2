@@ -81,6 +81,30 @@ signature and a spelling. Notation knows nothing about targets, spent notes or g
 overlay reaches it as plain `Set<int>`. One `StaffView` renders every case: a one-column score
 is centred and its notes drop in; a longer one flows and scrolls under a cursor.
 
+### What the staff animates
+
+Every layer `StaffView` draws sits in an `AnimatedSwitcher`, and the switcher decides whether
+to animate by comparing child keys with `==`. **A key built from a `List` is never equal to the
+last frame's**, so it replays the entry animation on every rebuild — and a keypress rebuilds
+the staff, so the notes and clef would drop in again on every press, right or wrong. Keys name
+what the layer *draws* (`_clefSignature`, `_columnSignature`, `_heldSignature`) and deliberately
+leave colour out, so a wrong key turning right repaints in place instead of re-entering.
+
+Held keys are drawn differently by alignment, following v1:
+
+- **Centred** (single note, both chord modes) — the live attempt and the keys that already
+  scored are *one* layer on the one column. They drop in and out together, and both take
+  `layout.columnX`.
+- **Flowing** (sheet music) — scored keys are pinned to the column they were struck at while
+  the music scrolls past them, and neither layer animates. The scroll is the movement.
+
+A key that scores keeps the **clef and spelling of the target it answered**, not the one on
+screen now (`_lastTarget`). Grading deals the next target in the same event as the press, so
+the staff never draws a frame with that key down under the target it was actually answering —
+without the remembered writing the green note jumps clef or staff position the instant the next
+target lands. A key the current column *asks for* is re-written its way, so one held from a
+flat chord into a sharp one that wants it gets re-spelled rather than sitting a step off.
+
 ### Adding a game mode
 
 1. Add the value to `GameMode`, listing the `SettingKnob`s its settings sheet should offer.
@@ -147,6 +171,9 @@ LH: | [D3 A3]w | [A2 E3]w |           # chords bracketed; w = whole note
   `headroom = 3.93` and the rest of `StaffMetrics` are load-bearing.
 - **Layout changes need a 360 dp widget test** that applies `withTextScale`, or an overflow
   will not be caught.
+- **`AnimatedSwitcher` keys must be value-equal.** Never key one on a `List`, a `Set` or a
+  freshly-built object — see *What the staff animates*. `staff_view_test.dart` guards this by
+  counting painters mid-frame.
 
 ## Not yet ported (deliberately)
 

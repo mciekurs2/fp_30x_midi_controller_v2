@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import '../../domain/models/note_value.dart';
 import '../layout/score_layout.dart';
 import '../layout/staff_style.dart';
+import '../model/clef.dart';
 import '../model/score.dart';
+import '../model/spelling.dart';
 import '../model/staff_placement.dart';
 import '../painting/score_painter.dart';
 import 'staff_label.dart';
@@ -72,7 +74,10 @@ class StaffView extends StatefulWidget {
 }
 
 /// How one held key is written, remembered for as long as it is down.
-typedef _Writing = ({StaffPlacement placement, int stave, NoteValue value});
+typedef _Writing = ({StaffPlacement placement, int stave});
+
+/// How a target was written, kept after it has been replaced.
+typedef _Written = ({Clef clef, Spelling spelling, ScoreColumn? column});
 
 class _StaffViewState extends State<StaffView> {
   ScoreMeasure? _measure;
@@ -87,10 +92,32 @@ class _StaffViewState extends State<StaffView> {
   ScoreMeasure get _scoreMeasure =>
       _measure ??= ScoreMeasure(widget.score);
 
+  /// How the target before this one was written.
+  ///
+  /// A key that scores keeps the clef and spelling of the target it answered —
+  /// the green note holds the staff position it was played at rather than
+  /// jumping an octave or a clef the moment the next target is dealt. This is
+  /// the only place that context survives: grading deals the next target in the
+  /// same event as the press, so the staff never draws a frame with the key
+  /// down under the target it was answering.
+  _Written? _lastTarget;
+
   @override
   void didUpdateWidget(StaffView oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (!identical(oldWidget.score, widget.score)) _measure = null;
+    if (identical(oldWidget.score, widget.score)) return;
+    _measure = null;
+    final old = oldWidget.score;
+    // Only a centred score deals a fresh target under a standing hand. A
+    // flowing one writes its scored keys against the column they were struck
+    // at, which carries the same context already.
+    _lastTarget = old.columns.length == 1
+        ? (
+            clef: old.staves.first.clef,
+            spelling: old.spelling,
+            column: old.columns.first,
+          )
+        : null;
   }
 
   @override
@@ -154,7 +181,7 @@ class _StaffViewState extends State<StaffView> {
         ),
         _switcher(
           child: CustomPaint(
-            key: ValueKey([for (final s in layout.staves) s.clef]),
+            key: ValueKey(_clefSignature(layout)),
             size: size,
             painter: ClefPainter(staves: layout.staves, color: color),
           ),
@@ -198,8 +225,10 @@ class _StaffViewState extends State<StaffView> {
     final painter = CustomPaint(
       key: ValueKey(
         layout.isEmpty
-            ? const []
-            : widget.score.columns[layout.base.clamp(0, layout.last)].midiNotes,
+            ? ''
+            : _columnSignature(
+                widget.score.columns[layout.base.clamp(0, layout.last)],
+              ),
       ),
       size: size,
       painter: ColumnsPainter(
@@ -217,8 +246,14 @@ class _StaffViewState extends State<StaffView> {
     );
   }
 
-  /// Two overlays: the live attempt on the cursor's column, and — pinned to
-  /// where they were struck — the keys that already scored.
+  /// The keys the player has down, drawn over the column they answer.
+  ///
+  /// A centred score draws them as one layer, the way v1 did: the live attempt
+  /// and whatever already scored sit on the same column, so they drop in and
+  /// out together and a key that turns from wrong to right only changes colour.
+  /// A flowing score keeps them apart — the scored ones are pinned to where
+  /// they were struck while the rest of the music scrolls past them — and, as
+  /// in v1, neither layer animates: the scroll is the movement.
   List<Widget> _overlays(
     ScoreLayout layout,
     ScoreMeasure measure,
@@ -226,21 +261,62 @@ class _StaffViewState extends State<StaffView> {
     Color playedColor,
     Color correctColor,
   ) {
-    if (layout.isEmpty) {
-      _writings.removeWhere((note, _) => !_isHeld(note));
-      return const [];
-    }
+    _writings.removeWhere((note, _) => !_isHeld(note));
+    if (layout.isEmpty) return const [];
+
     final current = layout.base.clamp(layout.first, layout.last);
     final currentColumn = widget.score.columns[current];
+    Color tint(int note) =>
+        widget.correct.contains(note) ? correctColor : playedColor;
 
-    _writings.removeWhere((note, _) => !_isHeld(note));
+    if (layout.alignment == ScoreAlignment.centered) {
+      final notes = _resolve(
+        {...widget.played, ...widget.scored},
+        currentColumn,
+        layout,
+        tint,
+      );
+      final values = _valuesFor(currentColumn, layout);
+      return [
+        Opacity(
+          opacity: _playedOpacity,
+          child: Stack(
+            fit: .expand,
+            children: [
+              // Its own switcher per stave, so a note changing under an
+              // unchanged clef does not fade the clef along with it.
+              for (final stave in layout.staves)
+                _switcher(
+                  child: _extraClef(
+                    _extraClefNotes(layout, notes)[stave.index],
+                    stave,
+                    size,
+                  ),
+                ),
+              _switcher(
+                drop: true,
+                child: notes.isEmpty
+                    ? const SizedBox.shrink(key: ValueKey('no-held'))
+                    : CustomPaint(
+                        key: ValueKey(_heldSignature(notes, values)),
+                        size: size,
+                        painter: OverlayPainter(
+                          notes: notes,
+                          layout: layout,
+                          values: values,
+                          target: _placementsFor(currentColumn, layout),
+                          x: layout.columnX(current),
+                          clip: false,
+                        ),
+                      ),
+              ),
+            ],
+          ),
+        ),
+      ];
+    }
 
-    final live = _resolve(
-      widget.played,
-      currentColumn,
-      layout,
-      (note) => widget.correct.contains(note) ? correctColor : playedColor,
-    );
+    final live = _resolve(widget.played, currentColumn, layout, tint);
     final pinnedIndex = widget.scoredColumn.clamp(
       0,
       widget.score.columns.length - 1,
@@ -259,7 +335,12 @@ class _StaffViewState extends State<StaffView> {
         child: Stack(
           fit: .expand,
           children: [
-            ..._extraClefs(layout, [...live, ...pinned], size),
+            for (final stave in layout.staves)
+              _extraClef(
+                _extraClefNotes(layout, [...live, ...pinned])[stave.index],
+                stave,
+                size,
+              ),
             CustomPaint(
               size: size,
               painter: OverlayPainter(
@@ -268,7 +349,7 @@ class _StaffViewState extends State<StaffView> {
                 values: _valuesFor(currentColumn, layout),
                 target: _placementsFor(currentColumn, layout),
                 x: layout.columnX(current),
-                clip: layout.alignment == ScoreAlignment.flowing,
+                clip: true,
               ),
             ),
             CustomPaint(
@@ -279,7 +360,7 @@ class _StaffViewState extends State<StaffView> {
                 values: _valuesFor(pinnedColumn, layout),
                 target: _placementsFor(pinnedColumn, layout),
                 x: layout.lead + measure.extents[pinnedIndex].left * staffSpace,
-                clip: layout.alignment == ScoreAlignment.flowing,
+                clip: true,
               ),
             ),
           ],
@@ -293,36 +374,36 @@ class _StaffViewState extends State<StaffView> {
   ///
   /// It happens when a key scored under one target and is held into the next:
   /// it keeps the writing it was struck with, and the new target's clef may not
-  /// be the same one. Tinted by the lowest key carrying it.
-  List<Widget> _extraClefs(
-    ScoreLayout layout,
-    List<HeldNote> notes,
-    Size size,
-  ) {
+  /// be the same one. Tinted by the lowest key carrying it — the one picked out
+  /// here, per stave.
+  Map<int, HeldNote> _extraClefNotes(ScoreLayout layout, List<HeldNote> notes) {
     final extra = <int, HeldNote>{};
     for (final note in notes) {
       if (note.placement.clef == layout.staves[note.stave].clef) continue;
       final lowest = extra[note.stave];
       if (lowest == null || note.note < lowest.note) extra[note.stave] = note;
     }
+    return extra;
+  }
 
-    return [
-      for (final entry in extra.entries)
-        CustomPaint(
+  Widget _extraClef(HeldNote? note, StaveLayout stave, Size size) => note == null
+      ? SizedBox.shrink(key: ValueKey('no-extra-clef-${stave.index}'))
+      : CustomPaint(
+          // Colour is left out on purpose: a key turning from wrong to right
+          // repaints its clef rather than fading in a new one.
+          key: ValueKey('extra-clef-${stave.index}:${note.placement.clef.name}'),
           size: size,
           painter: ClefPainter(
             staves: [
               (
-                clef: entry.value.placement.clef,
-                centerY: layout.staves[entry.key].centerY,
-                index: entry.key,
+                clef: note.placement.clef,
+                centerY: stave.centerY,
+                index: stave.index,
               ),
             ],
-            color: entry.value.color,
+            color: note.color,
           ),
-        ),
-    ];
-  }
+        );
 
   bool _isHeld(int note) =>
       widget.played.contains(note) || widget.scored.contains(note);
@@ -354,24 +435,15 @@ class _StaffViewState extends State<StaffView> {
     final resolved = <HeldNote>[];
     for (final note in notes) {
       final stave = staveForNote(layout, note);
-      // A key the column asks for is (re)written its way; anything else keeps
-      // whatever it was first drawn as.
-      final remembered = column.midiNotes.contains(note)
-          ? null
-          : _writings[note];
-      final writing =
-          remembered ??
-          (
-            placement: placeHeldNote(
-              note,
-              stave.clef,
-              column,
-              stave.index,
-              widget.score.spelling,
-            ),
-            stave: stave.index,
-            value: heldNoteValue(column, stave.index),
-          );
+      // A key the column asks for is (re)written its way — held on from a flat
+      // chord into a sharp one that wants the same key, it would otherwise keep
+      // its old spelling and sit a step off the notehead it is answering.
+      final asked = column.midiNotes.contains(note);
+      final writing = asked
+          ? _write(note, stave, widget.score.spelling, column, stave.clef)
+          : _writings[note] ??
+                _fromLastTarget(note, stave) ??
+                _write(note, stave, widget.score.spelling, column, stave.clef);
       _writings[note] = writing;
       resolved.add((
         note: note,
@@ -381,6 +453,24 @@ class _StaffViewState extends State<StaffView> {
       ));
     }
     return resolved;
+  }
+
+  _Writing _write(
+    int note,
+    StaveLayout stave,
+    Spelling spelling,
+    ScoreColumn? column,
+    Clef clef,
+  ) => (
+    placement: placeHeldNote(note, clef, column, stave.index, spelling),
+    stave: stave.index,
+  );
+
+  /// A key that has already scored, written the way the target it answered was.
+  _Writing? _fromLastTarget(int note, StaveLayout stave) {
+    final last = _lastTarget;
+    if (last == null || !widget.scored.contains(note)) return null;
+    return _write(note, stave, last.spelling, last.column, last.clef);
   }
 
   /// One name row per stave, below the system: the keys to press and, under
@@ -463,6 +553,34 @@ class _NameRow extends StatelessWidget {
     );
   }
 }
+
+/// The keys the entry animations are switched on.
+///
+/// [AnimatedSwitcher] compares child keys with `==`, and a Dart `List` is equal
+/// only to itself — so a key built from one is never equal to the last frame's,
+/// and the layer animates in again on every rebuild. Since a keypress rebuilds
+/// the staff, that re-drops the written notes on every press, right or wrong.
+/// Naming the content instead means a layer animates when what it draws
+/// changes, and repaints in place when it does not.
+String _clefSignature(ScoreLayout layout) =>
+    [for (final stave in layout.staves) stave.clef.name].join(',');
+
+String _columnSignature(ScoreColumn column) => [
+  for (final voice in column.voices)
+    if (voice == null)
+      '-'
+    else
+      '${voice.value.name}${voice.dotted ? '.' : ''}'
+          ':${[for (final note in voice.notes) _noteSignature(note)].join(' ')}',
+].join('|');
+
+String _heldSignature(List<HeldNote> notes, Map<int, NoteValue> values) => [
+  [for (final note in notes) note.note]..sort(),
+  [for (final entry in values.entries) '${entry.key}${entry.value.name}']..sort(),
+].join('/');
+
+String _noteSignature(ScoreNote note) =>
+    '${note.midi}/${note.letter}/${note.octave}/${note.drawn?.name}';
 
 /// In from just above, out to just below, each with a fade.
 Widget _dropTransition(Widget child, Animation<double> animation) {
