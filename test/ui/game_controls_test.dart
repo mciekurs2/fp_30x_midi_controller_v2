@@ -106,6 +106,27 @@ void main() {
     expect(find.text('Octaves'), findsNothing);
   });
 
+  testWidgets('the hands picker offers one hand at a time', (tester) async {
+    await pump(tester);
+    await chooseMode(tester, GameMode.song);
+    await openSettings(tester);
+
+    expect(find.widgetWithText(ChoiceChip, 'Right'), findsOneWidget);
+    expect(find.widgetWithText(ChoiceChip, 'Left'), findsOneWidget);
+    // Withheld until dual-hand grading is ported; see PlayHands.offered.
+    expect(find.widgetWithText(ChoiceChip, 'Both'), findsNothing);
+
+    // The header names the hand in force, and follows the picker — two of the
+    // chosen name on screen (header + chip), one of the other.
+    expect(find.text('Right'), findsNWidgets(2));
+    expect(find.text('Left'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(ChoiceChip, 'Left'));
+    await tester.pumpAndSettle();
+    expect(find.text('Left'), findsNWidgets(2));
+    expect(find.text('Right'), findsOneWidget);
+  });
+
   testWidgets('the key picker re-spells itself with the tonality', (
     tester,
   ) async {

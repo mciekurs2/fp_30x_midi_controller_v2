@@ -14,7 +14,7 @@ class GameSettings {
     this.untimed = false,
     this.chordKey = MusicKey.cMajor,
     this.songAsset,
-    this.hands = PlayHands.both,
+    this.hands = PlayHands.right,
   }) : octaves = (octaves == null || octaves.isEmpty)
            ? defaultOctaves
            : octaves;

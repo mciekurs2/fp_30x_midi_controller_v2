@@ -8,13 +8,23 @@ enum Hand { right, left }
 
 /// Which hands a round asks the player to cover.
 enum PlayHands {
-  right('RH'),
-  left('LH'),
+  right('Right'),
+  left('Left'),
   both('Both');
 
   const PlayHands(this.title);
 
   final String title;
+
+  /// The hands a round can be set to.
+  ///
+  /// Dual-hand play is not ported: the staff draws both, but a held key still
+  /// splits at middle C rather than by the hand that asked for it, so a chord
+  /// spanning the split grades against the wrong stave. [both] is therefore
+  /// withheld — from the settings sheet, and from anything read back out of the
+  /// store, so an install that already chose it does not keep playing it.
+  /// Uncomment it here to offer it again.
+  static const offered = [right, left /*, both*/];
 
   bool get playsRight => this != PlayHands.left;
   bool get playsLeft => this != PlayHands.right;

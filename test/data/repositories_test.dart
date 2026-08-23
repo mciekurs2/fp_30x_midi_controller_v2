@@ -56,6 +56,14 @@ void main() {
       expect(restored.hands, GameSettings().hands);
     });
 
+    test('a hand no longer offered falls back to the default', () async {
+      // What an install that chose dual-hand before it was withdrawn holds.
+      final prefs = FakePreferencesService({'gamesettings_hands': 'both'});
+      final restored = await SettingsRepository(prefs).load();
+      expect(restored.hands, GameSettings().hands);
+      expect(PlayHands.offered, isNot(contains(PlayHands.both)));
+    });
+
     test('a corrupt octave list does not take launch down', () async {
       // v1 called int.parse straight on this and threw a FormatException from
       // inside provider initialisation.

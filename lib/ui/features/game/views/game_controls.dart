@@ -313,9 +313,9 @@ class _HandsKnob extends ConsumerWidget {
       crossAxisAlignment: .stretch,
       spacing: sheetSpacing,
       children: [
-        const SheetHeader(title: 'Hands'),
+        SheetHeader(title: 'Hands', value: hands.title),
         ChipRow<PlayHands>(
-          items: PlayHands.values,
+          items: PlayHands.offered,
           label: (hand) => hand.title,
           isSelected: (hand) => hands == hand,
           onSelected: (hand, _) => notifier.setHands(hand),

@@ -37,7 +37,7 @@ class SettingsRepository {
       songAsset: await _prefs.getString('${_prefix}song'),
       hands:
           _byName(
-            PlayHands.values,
+            PlayHands.offered,
             await _prefs.getString('${_prefix}hands'),
           ) ??
           defaults.hands,
