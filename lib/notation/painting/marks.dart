@@ -24,7 +24,7 @@ void paintMarks(
   required NoteValue value,
   required double x,
   required double centerY,
-  List<List<int>>? accidentalColumns,
+  AccidentalColumns? accidentalColumns,
 }) {
   // A step is one staff position, so two notes never contend for a ledger line
   // and the last writer is the only writer.

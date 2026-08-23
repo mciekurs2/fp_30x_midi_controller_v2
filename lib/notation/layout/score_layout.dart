@@ -362,48 +362,56 @@ Extent voiceExtent(ScoreVoice voice, Clef clef, Spelling spelling) {
   return (left: left, right: right);
 }
 
+/// Accidental columns being handed out.
+///
+/// A target is laid out first, on its own, so what you are asked to play never
+/// shifts as keys go down; an overlay is then fitted *around* it by passing the
+/// same instance. A held key on a step the target already has gets that step's
+/// place back — which is what lands it on the very accidental it is answering —
+/// and any other takes the leftmost column clearing every step already in it.
+class AccidentalColumns {
+  final _grid = <List<int>>[];
+  final _placed = <int, double>{};
+
+  /// The right edge for an accidental on [step], in staff spaces from the
+  /// notehead centre. Negative: accidentals hang to the left.
+  double rightFor(int step, NoteValue value) =>
+      _placed[step] ??= _assign(step, value);
+
+  double _assign(int step, NoteValue value) {
+    var col = 0;
+    while (col < _grid.length &&
+        !_grid[col].every(
+          (s) => (s - step).abs() >= StaffMetrics.accidentalStack,
+        )) {
+      col++;
+    }
+    if (col == _grid.length) _grid.add([]);
+    _grid[col].add(step);
+    return value.leftEdge -
+        StaffMetrics.accidentalGap -
+        col * StaffMetrics.accidentalColumnStep;
+  }
+}
+
 /// Where each accidental hangs beside its notehead. Close ones stack into
 /// left-going columns so they never overlap; measuring and drawing both go
 /// through this, so the reserved width is always the width actually used.
-///
-/// [columns] carries the staff steps already placed in each column and is added
-/// to, so a target can be laid out first and an overlay fitted *around* it:
-/// the overlay never nudges the target's accidentals aside, and a held key on a
-/// step the target already has reuses that step's column, landing exactly on
-/// the accidental it is answering.
 List<AccidentalSlot> accidentalSlots(
   List<StaffPlacement> placements,
   NoteValue value, {
-  List<List<int>>? columns,
+  AccidentalColumns? columns,
 }) {
   final marked = [
     for (var i = 0; i < placements.length; i++)
       if (placements[i].accidental != null) (index: i, p: placements[i]),
   ]..sort((a, b) => b.p.steps.compareTo(a.p.steps));
 
-  final grid = columns ?? <List<int>>[];
-  final placed = <int, double>{};
-  final slots = <AccidentalSlot>[];
-
-  for (final (:index, :p) in marked) {
-    final right = placed[p.steps] ?? _assign(grid, p.steps, value);
-    placed[p.steps] = right;
-    slots.add((index: index, placement: p, right: right));
-  }
-  return slots;
-}
-
-double _assign(List<List<int>> grid, int step, NoteValue value) {
-  var col = 0;
-  while (col < grid.length &&
-      !grid[col].every((s) => (s - step).abs() >= StaffMetrics.accidentalStack)) {
-    col++;
-  }
-  if (col == grid.length) grid.add([]);
-  grid[col].add(step);
-  return value.leftEdge -
-      StaffMetrics.accidentalGap -
-      col * StaffMetrics.accidentalColumnStep;
+  final grid = columns ?? AccidentalColumns();
+  return [
+    for (final (:index, :p) in marked)
+      (index: index, placement: p, right: grid.rightFor(p.steps, value)),
+  ];
 }
 
 /// Opacity for a column [d] places ahead of the cursor, sampled continuously so

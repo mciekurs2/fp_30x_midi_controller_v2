@@ -255,6 +255,7 @@ class OverlayPainter extends CustomPainter {
     required this.notes,
     required this.layout,
     required this.values,
+    required this.target,
     required this.x,
     required this.clip,
   });
@@ -264,6 +265,12 @@ class OverlayPainter extends CustomPainter {
 
   /// The note value held keys take on each stave, from the column they answer.
   final Map<int, NoteValue> values;
+
+  /// The answered column's own placements, per stave. The target is columned
+  /// first from these, so what you are asked to play never shifts as keys go
+  /// down, and a held key on a step the target already has lands on the very
+  /// accidental it is answering.
+  final Map<int, List<StaffPlacement>> target;
   final double x;
   final bool clip;
 
@@ -283,13 +290,17 @@ class OverlayPainter extends CustomPainter {
           if (note.stave == stave.index) note,
       ];
       if (mine.isEmpty) continue;
+      final value = values[stave.index] ?? NoteValue.crotchet;
+      final columns = AccidentalColumns();
+      accidentalSlots(target[stave.index] ?? const [], value, columns: columns);
       paintMarks(
         canvas,
         placements: [for (final n in mine) n.placement],
         colors: [for (final n in mine) n.color],
-        value: values[stave.index] ?? NoteValue.crotchet,
+        value: value,
         x: x,
         centerY: stave.centerY,
+        accidentalColumns: columns,
       );
     }
     canvas.restore();
@@ -299,5 +310,6 @@ class OverlayPainter extends CustomPainter {
   bool shouldRepaint(OverlayPainter old) =>
       old.x != x ||
       !listEquals(old.notes, notes) ||
-      !mapEquals(old.values, values);
+      !mapEquals(old.values, values) ||
+      !mapEquals(old.target, target);
 }
