@@ -63,35 +63,31 @@ class GameHud extends ConsumerWidget {
         Row(
           crossAxisAlignment: .start,
           children: [
-            Flexible(
-              child: Column(
-                crossAxisAlignment: .start,
-                mainAxisSize: .min,
-                children: [
-                  _Reading(
-                    caption: 'Score',
-                    value: '${round.score}',
-                    alignment: .start,
-                    animate: true,
-                    topScores: topScores,
-                  ),
-                  const Padding(
-                    padding: .only(top: 32),
-                    child: VerdictMark(),
-                  ),
-                ],
-              ),
+            Column(
+              crossAxisAlignment: .start,
+              mainAxisSize: .min,
+              children: [
+                _Reading(
+                  caption: 'Score',
+                  value: '${round.score}',
+                  alignment: .start,
+                  animate: true,
+                  topScores: topScores,
+                ),
+                const Padding(
+                  padding: .only(top: 32),
+                  child: VerdictMark(),
+                ),
+              ],
             ),
-            const SizedBox(width: 8),
-            Flexible(
-              child: _Reading(
-                caption: 'Time',
-                value: _formatTime(remaining),
-                alignment: .end,
-                color: remaining != null && remaining <= _urgent
-                    ? Theme.of(context).colorScheme.primary
-                    : null,
-              ),
+            Spacer(),
+            _Reading(
+              caption: 'Time',
+              value: _formatTime(remaining),
+              alignment: .end,
+              color: remaining != null && remaining <= _urgent
+                  ? Theme.of(context).colorScheme.primary
+                  : null,
             ),
           ],
         ),

@@ -18,7 +18,9 @@ matching key.
 **Target: mobile phone, portrait.** Layouts are checked at **360 × 640**, the narrowest phone
 the app supports — and they must be checked *with* the app's own **1.5× text scale**, which is
 applied globally in `main.dart` because JollyLodger is condensed and reads small. Three real
-overflows were hiding behind tests that skipped that scale.
+overflows were hiding behind tests that skipped that scale. The `GameHud` row is the
+one deliberate exception: it keeps v1's `Spacer` layout and its 25 px overflow, pinned
+by message in `home_page_test.dart` so every *other* overflow still fails.
 
 This is a rewrite of `../fp_30x_midi_controller` (v1). v1 is the reference for **behaviour and
 geometry** — the notation constants especially were copied across, not re-derived. The iOS
