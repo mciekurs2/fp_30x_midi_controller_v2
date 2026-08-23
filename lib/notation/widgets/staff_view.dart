@@ -306,6 +306,7 @@ class _StaffViewState extends State<StaffView> {
                           layout: layout,
                           values: values,
                           target: _placementsFor(currentColumn, layout),
+                          scored: widget.scored,
                           x: layout.columnX(current),
                           clip: false,
                         ),

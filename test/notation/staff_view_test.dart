@@ -265,6 +265,30 @@ void main() {
     });
   });
 
+  testWidgets('a scored key is handed to the overlay as pinned', (
+    tester,
+  ) async {
+    // Db4 struck under its own target, then held into a flat chord that brings
+    // three accidentals of its own. The painter has to know which note already
+    // scored, or it columns the new target first and shoves the green flat left.
+    await pump(
+      tester,
+      StaffView(
+        score: Score.chord([63, 66, 70], spelling: Spelling.flats, label: 'Ebm'),
+        played: const {},
+        correct: const {61},
+        scored: const {61},
+      ),
+    );
+
+    final painter = tester
+        .widgetList<CustomPaint>(find.byType(CustomPaint))
+        .map((paint) => paint.painter)
+        .whereType<OverlayPainter>()
+        .single;
+    expect(painter.scored, {61});
+  });
+
   testWidgets('a signature in all 24 keys renders without overflowing', (
     tester,
   ) async {

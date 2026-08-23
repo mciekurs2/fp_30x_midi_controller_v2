@@ -258,6 +258,7 @@ class OverlayPainter extends CustomPainter {
     required this.target,
     required this.x,
     required this.clip,
+    this.scored = const {},
   });
 
   final List<HeldNote> notes;
@@ -271,6 +272,16 @@ class OverlayPainter extends CustomPainter {
   /// down, and a held key on a step the target already has lands on the very
   /// accidental it is answering.
   final Map<int, List<StaffPlacement>> target;
+
+  /// Which of [notes] already scored. They are columned *before* the target, so
+  /// a fresh target's accidentals fit around them rather than shoving theirs
+  /// left — a key that scored holds the place it was drawn in for as long as it
+  /// is held, the way it holds its clef and its spelling. Their own columns
+  /// depend only on each other, and that set changes only as keys are struck or
+  /// let go. Empty where nothing is pinned, which leaves the target columned
+  /// first exactly as before.
+  final Set<int> scored;
+
   final double x;
   final bool clip;
 
@@ -291,8 +302,14 @@ class OverlayPainter extends CustomPainter {
       ];
       if (mine.isEmpty) continue;
       final value = values[stave.index] ?? NoteValue.crotchet;
-      final columns = AccidentalColumns();
-      accidentalSlots(target[stave.index] ?? const [], value, columns: columns);
+      final columns = overlayColumns(
+        scored: [
+          for (final note in mine)
+            if (scored.contains(note.note)) note.placement,
+        ],
+        target: target[stave.index] ?? const [],
+        value: value,
+      );
       paintMarks(
         canvas,
         placements: [for (final n in mine) n.placement],
@@ -311,5 +328,6 @@ class OverlayPainter extends CustomPainter {
       old.x != x ||
       !listEquals(old.notes, notes) ||
       !mapEquals(old.values, values) ||
-      !mapEquals(old.target, target);
+      !mapEquals(old.target, target) ||
+      !setEquals(old.scored, scored);
 }

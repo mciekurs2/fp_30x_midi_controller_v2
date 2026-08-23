@@ -394,6 +394,26 @@ class AccidentalColumns {
   }
 }
 
+/// The grid one stave's overlay hangs its accidentals in.
+///
+/// Order is the whole point. [scored] is columned first, so a key that already
+/// scored keeps the place it was drawn in while it is held — its column depends
+/// only on the other scored keys, and that set changes only as keys are struck
+/// or let go, never because a new target arrived. [target] is columned next, so
+/// what you are asked to play still never shifts as *live* keys go down; those
+/// are fitted last, by the painter. A step already placed keeps its column, so
+/// a held key answering the target lands on the very accidental it answers.
+AccidentalColumns overlayColumns({
+  required List<StaffPlacement> scored,
+  required List<StaffPlacement> target,
+  required NoteValue value,
+}) {
+  final columns = AccidentalColumns();
+  accidentalSlots(scored, value, columns: columns);
+  accidentalSlots(target, value, columns: columns);
+  return columns;
+}
+
 /// Where each accidental hangs beside its notehead. Close ones stack into
 /// left-going columns so they never overlap; measuring and drawing both go
 /// through this, so the reserved width is always the width actually used.

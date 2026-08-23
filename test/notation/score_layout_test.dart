@@ -304,6 +304,54 @@ void main() {
       expect(asked.steps, unasked.steps + 1);
     });
 
+    test('a key that scored keeps its accidental column', () {
+      const value = NoteValue.crotchet;
+      List<StaffPlacement> flats(List<int> notes) => [
+        for (final note in notes)
+          StaffPlacement.inClef(note, Clef.treble, Spelling.flats),
+      ];
+      final db = flats([61]);
+
+      // Db4 alone, under the target it answered.
+      final alone = overlayColumns(scored: db, target: const [], value: value);
+      // Still held, with an Ebm triad now on the staff — three flats of its
+      // own, all within stacking distance of the Db's.
+      final crowded = overlayColumns(
+        scored: db,
+        target: flats([63, 66, 70]),
+        value: value,
+      );
+
+      expect(
+        crowded.rightFor(db.single.steps, value),
+        alone.rightFor(db.single.steps, value),
+        reason: 'the new target pushed the scored flat out of its column',
+      );
+    });
+
+    test('a target with nothing pinned is columned as it was', () {
+      const value = NoteValue.crotchet;
+      final target = [
+        for (final note in [63, 66, 70])
+          StaffPlacement.inClef(note, Clef.treble, Spelling.flats),
+      ];
+      final withPin = overlayColumns(
+        scored: const [],
+        target: target,
+        value: value,
+      );
+      final bare = AccidentalColumns();
+      accidentalSlots(target, value, columns: bare);
+
+      for (final placement in target) {
+        expect(
+          withPin.rightFor(placement.steps, value),
+          bare.rightFor(placement.steps, value),
+          reason: 'nothing pinned must leave the target exactly where it was',
+        );
+      }
+    });
+
     test('a held key takes the value of the note it answers', () {
       final column = ScoreColumn(
         voices: [
