@@ -1,17 +1,20 @@
 # fp_30x_midi_controller_v2
 
-A new Flutter project.
+A piano training game for the Roland FP-30X, over Bluetooth MIDI. The app puts a note, a chord
+or a piece of sheet music on a staff and you score by playing it on the piano.
 
-## Getting Started
+Four modes: **single note**, **chords**, **chords in key** (drawn under a key signature), and
+**sheet music** (self-paced, from hand-written `.song` charts).
 
-This project is a starting point for a Flutter application.
+## Running it
 
-A few resources to get you started if this is your first Flutter project:
+```bash
+flutter pub get
+dart run build_runner build
+flutter run -d <device>
+```
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+Debug builds include a **Play note** button that simulates a keypress aimed at the current
+target, so every mode can be played through without the piano.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+See `CLAUDE.md` for the architecture, the `.song` format, and how to add a game mode.
