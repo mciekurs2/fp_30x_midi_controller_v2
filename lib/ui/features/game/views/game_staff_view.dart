@@ -3,7 +3,6 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../../notation/widgets/staff_view.dart';
 import '../view_models/game_controller.dart';
-import 'played_readout.dart';
 
 /// The staff, wired to the round.
 ///
@@ -36,7 +35,6 @@ class GameStaffView extends ConsumerWidget {
       correct: staff.correct,
       scored: staff.scored,
       scoredColumn: staff.gradedColumn,
-      readout: const PlayedReadout(),
     );
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:fp_30x_midi_controller_v2/domain/models/music_key.dart';
 import 'package:fp_30x_midi_controller_v2/domain/models/note_value.dart';
 import 'package:fp_30x_midi_controller_v2/domain/models/pitch.dart';
+import 'package:fp_30x_midi_controller_v2/notation/layout/chord_layout.dart';
 import 'package:fp_30x_midi_controller_v2/notation/layout/glyph.dart';
 import 'package:fp_30x_midi_controller_v2/notation/layout/score_layout.dart';
 import 'package:fp_30x_midi_controller_v2/notation/layout/staff_style.dart';
@@ -27,11 +28,6 @@ void main() {
     test('the middle line of each clef sits at step zero', () {
       expect(StaffPlacement.inClef(71, Clef.treble).steps, 0); // B4
       expect(StaffPlacement.inClef(50, Clef.bass).steps, 0); // D3
-    });
-
-    test('stems hang down on or above the middle line', () {
-      expect(StaffPlacement.inClef(71, Clef.treble).stemDown, isTrue);
-      expect(StaffPlacement.inClef(60, Clef.treble).stemDown, isFalse);
     });
 
     test('middle C takes one ledger line in either clef', () {
@@ -78,44 +74,52 @@ void main() {
         StaffPlacement.inClef(note, Clef.treble, Spelling.flats),
     ];
 
+    AccidentalColumns columnsFor(List<StaffPlacement> notes) =>
+        AccidentalColumns(
+          base: layoutChord(notes, NoteValue.crotchet).headLeft,
+        );
+
+    List<AccidentalSlot> slotsFor(List<StaffPlacement> notes) =>
+        accidentalSlots(notes, columnsFor(notes));
+
     test('accidentals a third apart share one column', () {
       // Eb4 and Ab4 are four steps apart, inside the stacking threshold.
-      final slots = accidentalSlots(
-        placements([63, 68]),
-        NoteValue.crotchet,
-      );
+      final slots = slotsFor(placements([63, 68]));
       expect(slots, hasLength(2));
       expect(slots.first.right, isNot(slots.last.right));
     });
 
     test('accidentals far apart reuse the innermost column', () {
       // Eb3 and Eb5 are 14 steps apart, so neither crowds the other.
-      final slots = accidentalSlots(
-        placements([51, 75]),
-        NoteValue.crotchet,
-      );
+      final slots = slotsFor(placements([51, 75]));
       expect(slots.first.right, slots.last.right);
     });
 
     test('accidentals hang to the left of the notehead', () {
-      final slots = accidentalSlots(placements([63]), NoteValue.crotchet);
-      expect(slots.single.right, lessThan(0));
+      expect(slotsFor(placements([63])).single.right, lessThan(0));
+    });
+
+    test('an accidental clears a head displaced across the stem', () {
+      // Ab5 and Bb5 are a second apart and both well above the middle line, so
+      // the stem hangs down and the lower head is displaced to the left of it.
+      // Every accidental has to clear that head, not just the main column.
+      final second = placements([80, 82]);
+      final chord = layoutChord(second, NoteValue.crotchet);
+      expect(chord.stemDown, isTrue);
+      for (final slot in accidentalSlots(second, columnsFor(second))) {
+        expect(
+          slot.right - slot.placement.accidental!.symbol.width,
+          lessThanOrEqualTo(chord.headLeft),
+        );
+      }
     });
 
     test('an overlay fits around a target already laid out', () {
-      final columns = AccidentalColumns();
-      final target = accidentalSlots(
-        placements([63]),
-        NoteValue.crotchet,
-        columns: columns,
-      );
+      final columns = columnsFor(placements([63]));
+      final target = accidentalSlots(placements([63]), columns);
       // The same step comes back to the same column, landing on the very
       // accidental it is answering.
-      final overlay = accidentalSlots(
-        placements([63]),
-        NoteValue.crotchet,
-        columns: columns,
-      );
+      final overlay = accidentalSlots(placements([63]), columns);
       expect(overlay.single.right, target.single.right);
     });
   });
@@ -273,6 +277,28 @@ void main() {
       // With one stave everything lands on it.
       expect(staveForNote(_layout(Score.chord([60])), 30).index, 0);
     });
+
+    test('a held key goes to the stave whose voice wrote it', () {
+      // The hands overlap: this right hand reaches below middle C, and the
+      // left hand above it. The split alone would send both to the wrong one.
+      const column = ScoreColumn(
+        voices: [
+          ScoreVoice(notes: [ScoreNote(59)]),
+          ScoreVoice(notes: [ScoreNote(62)]),
+        ],
+      );
+      final layout = _layout(
+        Score(
+          staves: const [Stave(Clef.treble), Stave(Clef.bass)],
+          columns: const [column],
+        ),
+      );
+      expect(staveForNote(layout, 59, column).index, 0);
+      expect(staveForNote(layout, 62, column).index, 1);
+      // A key no voice asks for still falls back to the split.
+      expect(staveForNote(layout, 72, column).index, 0);
+      expect(staveForNote(layout, 48, column).index, 1);
+    });
   });
 
   group('held keys', () {
@@ -311,20 +337,21 @@ void main() {
           StaffPlacement.inClef(note, Clef.treble, Spelling.flats),
       ];
       final db = flats([61]);
+      final base = layoutChord(db, value).headLeft;
 
       // Db4 alone, under the target it answered.
-      final alone = overlayColumns(scored: db, target: const [], value: value);
+      final alone = overlayColumns(scored: db, target: const [], base: base);
       // Still held, with an Ebm triad now on the staff — three flats of its
       // own, all within stacking distance of the Db's.
       final crowded = overlayColumns(
         scored: db,
         target: flats([63, 66, 70]),
-        value: value,
+        base: base,
       );
 
       expect(
-        crowded.rightFor(db.single.steps, value),
-        alone.rightFor(db.single.steps, value),
+        crowded.rightFor(db.single.steps),
+        alone.rightFor(db.single.steps),
         reason: 'the new target pushed the scored flat out of its column',
       );
     });
@@ -335,18 +362,19 @@ void main() {
         for (final note in [63, 66, 70])
           StaffPlacement.inClef(note, Clef.treble, Spelling.flats),
       ];
+      final base = layoutChord(target, value).headLeft;
       final withPin = overlayColumns(
         scored: const [],
         target: target,
-        value: value,
+        base: base,
       );
-      final bare = AccidentalColumns();
-      accidentalSlots(target, value, columns: bare);
+      final bare = AccidentalColumns(base: base);
+      accidentalSlots(target, bare);
 
       for (final placement in target) {
         expect(
-          withPin.rightFor(placement.steps, value),
-          bare.rightFor(placement.steps, value),
+          withPin.rightFor(placement.steps),
+          bare.rightFor(placement.steps),
           reason: 'nothing pinned must leave the target exactly where it was',
         );
       }

@@ -1,0 +1,80 @@
+title: Blue
+key: G major
+time: 4/4
+
+# Beyonce / Boots, from the published piano-vocal arrangement, bars 1-20.
+# Hybrid arrangement. The left hand is as written; the right hand is thinned to
+# the notes sounding at each left-hand strike, so both hands always land
+# together. The sung melody in between is dropped - it runs in sixteenths
+# against a half-note bass and is not a note-reading exercise.
+#
+# G major, so a written F is F#. The two colours the intro alternates are
+# G6 = [B3 D4 E4 G4] and Gmaj7(add13) = [B3 D4 E4 F4].
+
+# Bars 1-4, piano intro. Both hands already strike together as written.
+RH: [B3 D4 E4 G4]h [B3 D4 E4 G4]q [B3 D4 E4 G4]q
+LH: [G2 D3 G3]h    [G2 D3 G3]q    [G2 D3 G3]q
+
+RH: [B3 D4 E4 F4]h [B3 D4 E4 F4]q [B3 D4 E4 F4]q
+LH: [G2 D3 G3]h    [G2 D3 G3]q    [G2 D3 G3]q
+
+RH: [B3 D4 E4 G4]h [B3 D4 E4 G4]q [B3 D4 E4 G4]q
+LH: [G2 D3 G3]h    [G2 D3 G3]q    [G2 D3 G3]q
+
+# Bar 4 ends on the melody's pickup, and the bass turns to the major seventh.
+RH: [B3 D4 E4 F4]h [B3 D4 E4 F4]q D4q
+LH: [G2 D3 G3]h    [G2 D3 G3]q    [G2 D3 F3]q
+
+# Bars 5-8, verse. From here the right hand is the thinned melody line.
+RH: B3h         B3q         B3q
+LH: [G2 D3 G3]h [G2 D3 G3]q [G2 D3 G3]q
+
+RH: B3h          B3q          D4q
+LH: [G2 D3 F3]h  [G2 D3 F3]q  [G2 D3 F3]q
+
+RH: [B3 D4]h    [B3 D4 F4]q  E4q
+LH: [G2 D3 G3]h [G2 D3 G3]q  [G2 D3 G3]q
+
+RH: [B3 D4]h    [D4 F4 D5]q [D4 F4 B4]q
+LH: [G2 D3 F3]h [G2 D3 F3]q [G2 D3 F3]q
+
+# Bars 9-12. Am7, then D - the left hand moves to half-note dyads.
+RH: [C4 G4 B4]h [C4 G4 B4]h
+LH: [E3 A3]h    [E3 A3]h
+
+RH: [C4 G4 B4]h [E4 G4 D5]h
+LH: [E3 A3]h    [E3 A3]h
+
+RH: [D4 F4 B4]h [D4 F4 A4]h
+LH: [D3 A3]h    [D3 A3]h
+
+# The written right hand rests on beat 3 here; it re-strikes what it was
+# holding, which is what the pedal does anyway.
+RH: [D4 F4 A4]h [D4 F4 A4]h
+LH: [D3 A3]h    [D3 A3]h
+
+# Bars 13-16 repeat the verse.
+RH: B3h         B3q         B3q
+LH: [G2 D3 G3]h [G2 D3 G3]q [G2 D3 G3]q
+
+RH: B3h          B3q          D4q
+LH: [G2 D3 F3]h  [G2 D3 F3]q  [G2 D3 F3]q
+
+RH: [B3 D4]h    [B3 D4 F4]q  E4q
+LH: [G2 D3 G3]h [G2 D3 G3]q  [G2 D3 G3]q
+
+RH: B3h         [D4 F4 D5]q [D4 F4 B4]q
+LH: [G2 D3 F3]h [G2 D3 F3]q [G2 D3 F3]q
+
+# Bars 17-20. Bar 20 holds a tied chord across both strikes.
+RH: [C4 G4 B4]h [C4 G4 B4]h
+LH: [E3 A3]h    [E3 A3]h
+
+RH: [C4 G4 B4]h [E4 G4 D5]h
+LH: [E3 A3]h    [E3 A3]h
+
+RH: [D4 F4 B4]h [D4 F4 A4]h
+LH: [D3 A3]h    [D3 A3]h
+
+RH: [D4 F4 A4]h [D4 F4 A4]h
+LH: [D3 A3]h    [D3 A3]h

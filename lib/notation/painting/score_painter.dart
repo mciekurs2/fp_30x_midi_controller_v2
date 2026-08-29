@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../../domain/models/music_key.dart';
 import '../../domain/models/note_value.dart';
+import '../layout/chord_layout.dart';
 import '../layout/glyph.dart';
 import '../layout/score_layout.dart';
 import '../layout/staff_style.dart';
@@ -204,7 +205,7 @@ class ColumnsPainter extends CustomPainter {
     final placements = [
       for (final note in voice.notes) note.placeOn(stave.clef, score.spelling),
     ];
-    paintMarks(
+    final chord = paintMarks(
       canvas,
       placements: placements,
       colors: [for (final _ in placements) tint],
@@ -212,9 +213,7 @@ class ColumnsPainter extends CustomPainter {
       x: x,
       centerY: stave.centerY,
     );
-    if (voice.dotted) {
-      paintDot(canvas, placements, voice.value, x, stave.centerY, tint);
-    }
+    if (voice.dotted) paintDot(canvas, chord, x, stave.centerY, tint);
   }
 
   void _paintBarline(Canvas canvas, double x, Color tint) {
@@ -302,21 +301,28 @@ class OverlayPainter extends CustomPainter {
       ];
       if (mine.isEmpty) continue;
       final value = values[stave.index] ?? NoteValue.crotchet;
+      final placements = [for (final n in mine) n.placement];
+      final asked = target[stave.index] ?? const <StaffPlacement>[];
+      // The target is laid out first and the overlay follows it, for heads and
+      // accidentals alike: a held key then lands on the very notehead it is
+      // answering, under the same stem, however the target's chord is spread.
+      final written = asked.isEmpty ? null : layoutChord(asked, value);
       final columns = overlayColumns(
         scored: [
           for (final note in mine)
             if (scored.contains(note.note)) note.placement,
         ],
-        target: target[stave.index] ?? const [],
-        value: value,
+        target: asked,
+        base: (written ?? layoutChord(placements, value)).headLeft,
       );
       paintMarks(
         canvas,
-        placements: [for (final n in mine) n.placement],
+        placements: placements,
         colors: [for (final n in mine) n.color],
         value: value,
         x: x,
         centerY: stave.centerY,
+        follow: written,
         accidentalColumns: columns,
       );
     }

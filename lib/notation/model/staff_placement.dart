@@ -8,7 +8,6 @@ class StaffPlacement {
   const StaffPlacement._({
     required this.clef,
     required this.steps,
-    required this.stemDown,
     required this.ledgerSteps,
     required this.accidental,
   });
@@ -16,7 +15,6 @@ class StaffPlacement {
   /// Positive is up the staff. Lines sit on even steps, spaces on odd.
   final Clef clef;
   final int steps;
-  final bool stemDown;
   final List<int> ledgerSteps;
   final Accidental? accidental;
 
@@ -41,8 +39,6 @@ class StaffPlacement {
     return StaffPlacement._(
       clef: clef,
       steps: steps,
-      // Standard engraving: notes on or above the middle line hang stems down.
-      stemDown: steps >= 0,
       ledgerSteps: _ledgers(steps),
       accidental: _accidental(midiNote, spelling),
     );
@@ -65,7 +61,6 @@ class StaffPlacement {
     return StaffPlacement._(
       clef: clef,
       steps: steps,
-      stemDown: steps >= 0,
       ledgerSteps: _ledgers(steps),
       accidental: drawn,
     );

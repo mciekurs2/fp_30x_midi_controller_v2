@@ -36,7 +36,7 @@ class PlayedReadout extends ConsumerWidget {
     final name = playedName(held);
     final isHit = held.isNotEmpty && correct.containsAll(held);
     final theme = Theme.of(context);
-    final headline = theme.textTheme.headlineMedium;
+    final headline = theme.textTheme.headlineSmall;
 
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 300),

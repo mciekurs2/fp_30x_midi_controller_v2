@@ -56,12 +56,16 @@ void main() {
       expect(restored.hands, GameSettings().hands);
     });
 
-    test('a hand no longer offered falls back to the default', () async {
-      // What an install that chose dual-hand before it was withdrawn holds.
-      final prefs = FakePreferencesService({'gamesettings_hands': 'both'});
-      final restored = await SettingsRepository(prefs).load();
-      expect(restored.hands, GameSettings().hands);
-      expect(PlayHands.offered, isNot(contains(PlayHands.both)));
+    test('every offered hand survives a round trip', () async {
+      // The store reads `hands` against PlayHands.offered, so a hand that is
+      // offered must come back — and one that is not falls back instead, which
+      // the unrecognised-name test above covers through the same path.
+      for (final hand in PlayHands.offered) {
+        final prefs = FakePreferencesService();
+        final repository = SettingsRepository(prefs);
+        await repository.save(GameSettings(hands: hand));
+        expect((await repository.load()).hands, hand);
+      }
     });
 
     test('a corrupt octave list does not take launch down', () async {

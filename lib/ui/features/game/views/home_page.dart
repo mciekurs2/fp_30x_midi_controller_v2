@@ -7,6 +7,7 @@ import '../../debug/views/test_controls.dart';
 import '../view_models/game_controller.dart';
 import 'game_controls.dart';
 import 'game_hud.dart';
+import 'game_names.dart';
 import 'game_staff_view.dart';
 import 'play_button.dart';
 
@@ -39,6 +40,15 @@ class HomePage extends ConsumerWidget {
               child: GameHud(),
             ),
             Center(child: GameStaffView()),
+            // The names hang off the bottom of the screen, mirroring the HUD's
+            // inset at the top, rather than off the staff they belong to.
+            Align(
+              alignment: .bottomCenter,
+              child: Padding(
+                padding: .fromLTRB(24, 0, 24, 150),
+                child: GameNames(),
+              ),
+            ),
             Align(
               alignment: .bottomCenter,
               child: Padding(

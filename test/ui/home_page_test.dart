@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:fp_30x_midi_controller_v2/core/providers.dart';
 import 'package:fp_30x_midi_controller_v2/domain/models/game_mode.dart';
 import 'package:fp_30x_midi_controller_v2/domain/models/note_event.dart';
+import 'package:fp_30x_midi_controller_v2/domain/models/song.dart';
 import 'package:fp_30x_midi_controller_v2/ui/core/theme/app_theme.dart';
 import 'package:fp_30x_midi_controller_v2/ui/features/game/view_models/game_controller.dart';
 import 'package:fp_30x_midi_controller_v2/ui/features/game/view_models/game_settings_controller.dart';
@@ -117,6 +118,23 @@ void main() {
         await tap(tester, find.text('Stop'));
       }
     }
+  });
+
+  testWidgets('a grand staff plays a round on a 360dp phone', (tester) async {
+    // Dual-hand song mode is the only round that draws two staves; it is taller
+    // than everything the test above covers.
+    await pump(tester);
+    final settings = container.read(gameSettingsControllerProvider.notifier);
+    settings.setMode(GameMode.song);
+    settings.setHands(PlayHands.both);
+    await tester.pumpAndSettle();
+
+    await tap(tester, find.text('Play'));
+    await answer(tester);
+    await answer(tester);
+
+    expectNothingUnexpected(tester, reason: 'the grand staff threw');
+    expect(container.read(gameControllerProvider).score, greaterThan(0));
   });
 
   testWidgets('the readout names what is under the hands', (tester) async {

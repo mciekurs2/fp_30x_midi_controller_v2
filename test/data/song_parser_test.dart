@@ -192,24 +192,54 @@ RH: F4
     });
   });
 
-  group('the bundled chart', () {
-    test('parses, and every note is playable on an FP-30X', () async {
-      final text = await _readAsset('assets/songs/stop_the_wedding.song');
-      final song = parseSong(text);
-      expect(song.title, isNotEmpty);
-      expect(song.columns, isNotEmpty);
+  group('the bundled charts', () {
+    test('every one parses, and every note is playable on an FP-30X', () async {
+      final charts = Directory('assets/songs')
+          .listSync()
+          .whereType<File>()
+          .where((file) => file.path.endsWith('.song'));
+      expect(charts, isNotEmpty);
 
-      for (final column in song.columns) {
-        for (final hand in Hand.values) {
-          for (final note in column.eventFor(hand)?.midiNotes ?? const <int>[]) {
-            expect(
-              note,
-              inInclusiveRange(21, 108),
-              reason: '$note is off the keyboard',
-            );
+      for (final chart in charts) {
+        final song = parseSong(await _readAsset(chart.path));
+        expect(song.title, isNotEmpty, reason: chart.path);
+        expect(song.columns, isNotEmpty, reason: chart.path);
+
+        for (final column in song.columns) {
+          for (final hand in Hand.values) {
+            final notes = column.eventFor(hand)?.midiNotes ?? const <int>[];
+            for (final note in notes) {
+              expect(
+                note,
+                inInclusiveRange(21, 108),
+                reason: '$note is off the keyboard in ${chart.path}',
+              );
+            }
           }
         }
       }
+    });
+
+    test('Blue strikes both hands on every column', () async {
+      // The hybrid arrangement's whole point: the right hand is thinned to the
+      // left hand's onsets, so a column with only one hand on it means a bar
+      // has drifted out of step.
+      final song = parseSong(await _readAsset('assets/songs/blue.song'));
+      expect(song.hands, {Hand.right, Hand.left});
+
+      for (final column in song.columns) {
+        for (final hand in Hand.values) {
+          final event = column.eventFor(hand);
+          expect(
+            event,
+            isNotNull,
+            reason: 'tick ${column.tick} has no $hand',
+          );
+          expect(event!.isRest, isFalse, reason: 'tick ${column.tick}');
+        }
+      }
+      // 20 bars of 4/4, and every bar starts one.
+      expect(song.columns.where((c) => c.startsBar), hasLength(20));
     });
   });
 }

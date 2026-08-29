@@ -98,6 +98,11 @@ Held keys are drawn differently by alignment, following v1:
 - **Flowing** (sheet music) — scored keys are pinned to the column they were struck at while
   the music scrolls past them, and neither layer animates. The scroll is the movement.
 
+On a grand staff a held key takes **the stave whose voice actually wrote it** (`staveForNote`),
+falling back to the middle-C split only for a key no voice asks for. The hands overlap in real
+arrangements — `blue.song`'s right hand reaches down to B3 — and the split alone put a
+correctly played right-hand note on the bass stave.
+
 A key that scores keeps the **clef and spelling of the target it answered**, not the one on
 screen now (`_lastTarget`). Grading deals the next target in the same event as the press, so
 the staff never draws a frame with that key down under the target it was actually answering —
@@ -116,6 +121,45 @@ The **name row follows the cursor, not the scroll.** `layout.base` is the animat
 position floored, so in sheet music it only reaches the new column when the 340 ms scroll
 lands; reading it left the name a whole scroll behind the note it names. Centred modes have no
 scroll, which is why only sheet music showed it.
+
+Each hand's name row is captioned with **its own** chord, if its own notes spell one — the
+staff never names a harmony across the hands. `blue.song`'s left hand is dyads throughout and
+so goes unnamed, and the right hand's `[B3 D4 E4 G4]` reads `Em7/B` where the two hands
+together are plainly `G6`. That is deliberate: the row names what the hand under it is being
+asked to play, and a first-time reader has no use for the name of a chord neither hand holds.
+The name and the chord share one line and one `TextSpan`, so they sit on a shared baseline,
+and the row is `FittedBox`-scaled to one line: the block reserves the height of exactly one,
+and `[B3 D4 E4 G4]  [Em7/B]` is wide enough to wrap on a 360 dp phone.
+
+### How a chord is drawn
+
+**A chord has one stem, not one per notehead** (`notation/layout/chord_layout.dart`). SMuFL
+ships noteheads with the stem baked in, and drawing one per note gave a four-note chord four
+stems — pointing *different ways* where it straddled the middle line, because the direction was
+`steps >= 0` per note. So the notation draws bare noteheads (`noteheadBlack` and friends) and
+places the stem itself. `layoutChord` decides, once, for the whole stack:
+
+- **Direction** — the head furthest from the middle line wins; a tie hangs down.
+- **Length** — measured from the head the stem *grows out of*, so a triad's tip lands about the
+  middle line. A chord wider than `stemLength` lengthens to clear its far head by
+  `stemOverhang` instead. Measuring a fixed reach past the *far* head, which is the tempting
+  reading of the rule, sends an octave in the left hand a whole staff up.
+- **Seconds** — two heads a diatonic step apart cannot share a side of the stem, so the second
+  one crosses it: right of an up stem, left of a down one, sharing the stem rather than
+  clearing it. A cluster alternates, and two heads on one step (F♮ beside F♯) split the same
+  way. The displaced head widens the column, which is why `voiceExtent` measures through the
+  chord rather than assuming one notehead's width.
+
+The overlay **follows the target's chord** the way it follows its accidental columns
+(`layoutChord(..., follow:)`): a held key takes the target's stem direction and the exact
+offset of any step the target writes, so a green head lands on the very notehead it is
+answering instead of half a head-width beside it. Its stem takes the *written* tip — an overlay
+reaching its own nominal length would shoot past the stem underneath the moment a chord's top
+note alone went down — but its own head as the foot, so only the stem the keys actually down
+reach along is tinted.
+
+`staffHalfGap` was widened from 3 to 4 for the same reason: at 3 a bass chord's stem reaching
+up met a treble note hanging below its staff, and the two read as one line through the system.
 
 ### Adding a game mode
 
@@ -179,6 +223,13 @@ LH: | [D3 A3]w | [A2 E3]w |           # chords bracketed; w = whole note
 - **Double accidentals are unsupported** and are rejected by the parser rather than
   mis-parsed.
 
+`blue.song` is a **hybrid arrangement**, and the pattern is worth reusing: the left hand is
+transcribed as written, and the right hand is thinned to only the notes sounding at each
+left-hand strike. A published piano-vocal arrangement's right hand is a sung melody in
+sixteenths against a half-note bass — unplayable as a reading drill, and it leaves most
+columns with one hand on them. Thinning it puts both hands on every column, which is what
+makes `PlayHands.both` playable. `song_parser_test.dart` guards that invariant.
+
 ## Conventions
 
 - **Comment sparingly.** Self-explanatory code needs no prose. Comment the genuinely
@@ -192,7 +243,8 @@ LH: | [D3 A3]w | [A2 E3]w |           # chords bracketed; w = whole note
 - **Notation geometry is copied from v1, not re-derived.** `staffScale = 330`,
   `headroom = 3.93` and the rest of `StaffMetrics` are load-bearing. `labelDrop` /
   `labelDropGrand` are the exception — tuned by eye for this app, and the knob to reach for
-  when the name row wants moving. Express any such tweak in staff spaces there, never as raw
+  when the name row wants moving. `stemLength` / `stemOverhang` / `staffHalfGap` are this
+  app's own, added with drawn stems — see *How a chord is drawn*. Express any such tweak in staff spaces there, never as raw
   pixels at the call site: `staffSpace` is what the whole notation scales by.
 - **Layout changes need a 360 dp widget test** that applies `withTextScale`, or an overflow
   will not be caught.
@@ -202,11 +254,9 @@ LH: | [D3 A3]w | [A2 E3]w |           # chords bracketed; w = whole note
 
 ## Not yet ported (deliberately)
 
-Dual-hand sheet music is **built but withheld**: `PlayHands.both` works — `Score.song` draws
-the grand staff, `SongExercise` grades both hands, and tests cover it — but it is left out of
-`PlayHands.offered`, so the settings sheet never offers it and the store never restores it.
-Held keys still split at middle C rather than by the hand that asked, so a chord across the
-split grades against the wrong stave. Uncomment it in `offered` to put it back everywhere.
+`blue.song` covers bars 1–20 only. From bar 21 the left hand drops its block chords for a
+running single-note riff, which the hybrid rule has nothing to thin against; the photographed
+pages for the rest are in `song_pngs/`.
 
 Also unported: a single-note version of the key-signature drill (the notation is all there
 — chords-in-key uses it — it just is not a `GameMode`). Chord **variations** beyond major/minor

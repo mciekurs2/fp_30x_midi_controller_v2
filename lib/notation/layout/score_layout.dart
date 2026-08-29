@@ -7,6 +7,7 @@ import '../model/clef.dart';
 import '../model/score.dart';
 import '../model/spelling.dart';
 import '../model/staff_placement.dart';
+import 'chord_layout.dart';
 import 'glyph.dart';
 import 'staff_style.dart';
 
@@ -159,10 +160,6 @@ class ScoreLayout {
   /// scrolls, so its one column is always solid.
   double alphaAt(int i) =>
       alignment == ScoreAlignment.centered ? 1 : _alphaAt(i - position);
-
-  /// How far below the bottom stave's middle line the first name row sits.
-  double get labelDropSpaces =>
-      staves.length > 1 ? labelDropGrand : labelDrop;
 }
 
 /// Lays [score] out for a viewport of [width] × [height], with the cursor at a
@@ -245,25 +242,22 @@ ScoreLayout _centeredLayout(
 ) {
   final score = measure.score;
   final clef = staves.first.clef;
-  final value = score.columns.isEmpty
-      ? NoteValue.crotchet
-      : (score.columns.first.voices.firstOrNull?.value ?? NoteValue.crotchet);
+  // The one column's measured ink, so the notes clear the signature by what
+  // they actually draw — a displaced head and a flag both reach further than a
+  // bare notehead does.
+  final ink = measure.extents.firstOrNull ?? (left: 0.0, right: 0.0);
 
   var centerX = width / 2;
   var fadeStart = StaffMetrics.fadeStart;
   if (score.drawnSignature case final key?) {
-    // A gap, then half a notehead: the column's centre, not its left edge.
+    // A gap, then the column's own left reach: its centre, not its left edge.
     final clearance =
-        (StaffMetrics.signatureGap - value.leftEdge) *
+        (StaffMetrics.signatureGap + ink.left) *
         StaffMetrics.space *
         staffScale;
     centerX = math.max(centerX, signatureRight(key, clef) + clearance);
     if (width > 0) {
-      final right =
-          centerX +
-          (value.leftEdge + value.headWidth + 1) *
-              StaffMetrics.space *
-              staffScale;
+      final right = centerX + (ink.right + 1) * StaffMetrics.space * staffScale;
       fadeStart = math.min(
         0.95,
         math.max(StaffMetrics.fadeStart, right / width),
@@ -340,6 +334,10 @@ double signatureRight(MusicKey key, Clef clef) {
 }
 
 /// How far a voice's ink reaches either side of its centre, in staff spaces.
+///
+/// The chord decides the heads' own spread — a displaced second and a quaver's
+/// flag both widen the column — and accidentals and the dot are added around
+/// it, so columns are spaced by the ink actually drawn.
 Extent voiceExtent(ScoreVoice voice, Clef clef, Spelling spelling) {
   if (voice.isRest) {
     final half = voice.value.rest.width / 2;
@@ -348,19 +346,29 @@ Extent voiceExtent(ScoreVoice voice, Clef clef, Spelling spelling) {
   final placements = [
     for (final note in voice.notes) note.placeOn(clef, spelling),
   ];
-  var left = -voice.value.leftEdge;
-  for (final slot in accidentalSlots(placements, voice.value)) {
-    left = math.max(left, -(slot.right - slot.placement.accidental!.symbol.width));
+  final chord = layoutChord(placements, voice.value);
+  var left = chord.left;
+  for (final slot in accidentalSlots(
+    placements,
+    AccidentalColumns(base: chord.headLeft),
+  )) {
+    left = math.max(
+      left,
+      -(slot.right - slot.placement.accidental!.symbol.width),
+    );
   }
-  var right = voice.value.leftEdge + voice.value.headWidth;
+  var right = chord.right;
   if (voice.dotted) {
     right = math.max(
       right,
-      voice.value.headWidth / 2 + 0.3 + MusicSymbol.augmentationDot.width,
+      chord.headRight + dotGap + MusicSymbol.augmentationDot.width,
     );
   }
   return (left: left, right: right);
 }
+
+/// Between the rightmost notehead and its augmentation dot, in staff spaces.
+const dotGap = 0.3;
 
 /// Accidental columns being handed out.
 ///
@@ -370,15 +378,22 @@ Extent voiceExtent(ScoreVoice voice, Clef clef, Spelling spelling) {
 /// place back — which is what lands it on the very accidental it is answering —
 /// and any other takes the leftmost column clearing every step already in it.
 class AccidentalColumns {
+  AccidentalColumns({required this.base});
+
+  /// The leftmost notehead's left edge, in staff spaces from the column centre.
+  /// Every accidental hangs from here, so a head displaced across the stem is
+  /// cleared rather than struck through. It is fixed at construction because
+  /// the target's chord sets it: a key going down must never move it.
+  final double base;
+
   final _grid = <List<int>>[];
   final _placed = <int, double>{};
 
   /// The right edge for an accidental on [step], in staff spaces from the
   /// notehead centre. Negative: accidentals hang to the left.
-  double rightFor(int step, NoteValue value) =>
-      _placed[step] ??= _assign(step, value);
+  double rightFor(int step) => _placed[step] ??= _assign(step);
 
-  double _assign(int step, NoteValue value) {
+  double _assign(int step) {
     var col = 0;
     while (col < _grid.length &&
         !_grid[col].every(
@@ -388,7 +403,7 @@ class AccidentalColumns {
     }
     if (col == _grid.length) _grid.add([]);
     _grid[col].add(step);
-    return value.leftEdge -
+    return base -
         StaffMetrics.accidentalGap -
         col * StaffMetrics.accidentalColumnStep;
   }
@@ -406,11 +421,11 @@ class AccidentalColumns {
 AccidentalColumns overlayColumns({
   required List<StaffPlacement> scored,
   required List<StaffPlacement> target,
-  required NoteValue value,
+  required double base,
 }) {
-  final columns = AccidentalColumns();
-  accidentalSlots(scored, value, columns: columns);
-  accidentalSlots(target, value, columns: columns);
+  final columns = AccidentalColumns(base: base);
+  accidentalSlots(scored, columns);
+  accidentalSlots(target, columns);
   return columns;
 }
 
@@ -419,18 +434,16 @@ AccidentalColumns overlayColumns({
 /// through this, so the reserved width is always the width actually used.
 List<AccidentalSlot> accidentalSlots(
   List<StaffPlacement> placements,
-  NoteValue value, {
-  AccidentalColumns? columns,
-}) {
+  AccidentalColumns columns,
+) {
   final marked = [
     for (var i = 0; i < placements.length; i++)
       if (placements[i].accidental != null) (index: i, p: placements[i]),
   ]..sort((a, b) => b.p.steps.compareTo(a.p.steps));
 
-  final grid = columns ?? AccidentalColumns();
   return [
     for (final (:index, :p) in marked)
-      (index: index, placement: p, right: grid.rightFor(p.steps, value)),
+      (index: index, placement: p, right: columns.rightFor(p.steps)),
   ];
 }
 
@@ -450,12 +463,21 @@ double _alphaAt(double d) {
 
 double _lerp(double a, double b, double t) => a + (b - a) * t;
 
-/// The stave a held key belongs to: with one stave, that one; with a grand
-/// staff, split at middle C.
-StaveLayout staveForNote(ScoreLayout layout, int note) =>
-    layout.staves.length == 1
-    ? layout.staves.first
-    : (note >= 60 ? layout.staves.first : layout.staves.last);
+/// The stave a held key belongs to.
+///
+/// With one stave, that one. With a grand staff, the stave whose voice actually
+/// writes the note in [column] — the hands overlap, and a right hand reaching
+/// below middle C would otherwise light up on the bass stave. Only when no
+/// voice claims it does the middle-C split decide, which is all a key nobody
+/// asked for has to go on.
+StaveLayout staveForNote(ScoreLayout layout, int note, [ScoreColumn? column]) {
+  if (layout.staves.length == 1) return layout.staves.first;
+  for (final stave in layout.staves) {
+    final voice = column?.voices.elementAtOrNull(stave.index);
+    if (voice != null && voice.notes.any((n) => n.midi == note)) return stave;
+  }
+  return note >= 60 ? layout.staves.first : layout.staves.last;
+}
 
 /// How a held key is written.
 ///

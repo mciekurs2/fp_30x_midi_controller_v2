@@ -7,13 +7,11 @@ enum MusicSymbol {
   brace('\uE000', 0.277),
   gClef('\uE050', 2.684),
   fClef('\uE062', 2.736),
-  noteWhole('\uE1D2', 1.688),
-  noteHalfUp('\uE1D3', 1.364),
-  noteHalfDown('\uE1D4', 1.364),
-  noteQuarterUp('\uE1D5', 1.328),
-  noteQuarterDown('\uE1D6', 1.328),
-  note8thUp('\uE1D7', 2.264),
-  note8thDown('\uE1D8', 1.328),
+  noteheadWhole('\uE0A2', 1.688),
+  noteheadHalf('\uE0A3', 1.18),
+  noteheadBlack('\uE0A4', 1.18),
+  flag8thUp('\uE240', 1.056),
+  flag8thDown('\uE241', 1.224),
   accidentalFlat('\uE260', 0.904),
   accidentalNatural('\uE261', 0.672),
   accidentalSharp('\uE262', 0.996),
@@ -38,18 +36,34 @@ extension AccidentalGlyph on Accidental {
 }
 
 extension NoteValueGlyph on NoteValue {
-  /// SMuFL ships each value stemmed both ways, registered on the notehead; the
-  /// stemless semibreve ignores direction.
-  MusicSymbol notehead({required bool stemDown}) =>
-      switch ((this, stemDown)) {
-        (NoteValue.quaver, false) => MusicSymbol.note8thUp,
-        (NoteValue.quaver, true) => MusicSymbol.note8thDown,
-        (NoteValue.crotchet, false) => MusicSymbol.noteQuarterUp,
-        (NoteValue.crotchet, true) => MusicSymbol.noteQuarterDown,
-        (NoteValue.minim, false) => MusicSymbol.noteHalfUp,
-        (NoteValue.minim, true) => MusicSymbol.noteHalfDown,
-        (NoteValue.semibreve, _) => MusicSymbol.noteWhole,
-      };
+  /// The notehead alone. SMuFL also ships heads with the stem baked in, but a
+  /// chord shares *one* stem between its heads, which no composite glyph can
+  /// express — so stems are drawn, not written.
+  MusicSymbol get notehead => switch (this) {
+    NoteValue.semibreve => MusicSymbol.noteheadWhole,
+    NoteValue.minim => MusicSymbol.noteheadHalf,
+    NoteValue.crotchet || NoteValue.quaver => MusicSymbol.noteheadBlack,
+  };
+
+  /// The flag at the stem's tip, or `null` where the value carries none.
+  MusicSymbol? flag({required bool stemDown}) => this != NoteValue.quaver
+      ? null
+      : stemDown
+      ? MusicSymbol.flag8thDown
+      : MusicSymbol.flag8thUp;
+
+  /// The semibreve is the one value drawn without a stem.
+  bool get stemmed => this != NoteValue.semibreve;
+
+  /// The whole note carries no stem, so it centres on its own wider head.
+  double get leftEdge => this == NoteValue.semibreve
+      ? StaffMetrics.wholeNoteX
+      : StaffMetrics.noteX;
+
+  /// Notehead ink width, for sizing ledger lines under it.
+  double get headWidth => this == NoteValue.semibreve
+      ? MusicSymbol.noteheadWhole.width
+      : MusicSymbol.noteheadBlack.width;
 
   /// The rest glyph of the same value, for a silent beat.
   MusicSymbol get rest => switch (this) {
@@ -58,15 +72,6 @@ extension NoteValueGlyph on NoteValue {
     NoteValue.crotchet => MusicSymbol.restQuarter,
     NoteValue.quaver => MusicSymbol.rest8th,
   };
-
-  /// The whole note carries no stem, so it centres on its own wider head.
-  double get leftEdge =>
-      this == NoteValue.semibreve ? StaffMetrics.wholeNoteX : StaffMetrics.noteX;
-
-  /// Notehead ink width, for sizing ledger lines under it.
-  double get headWidth => this == NoteValue.semibreve
-      ? MusicSymbol.noteWhole.width
-      : MusicSymbol.noteQuarterUp.width;
 }
 
 /// Staff geometry in fractions of the square, measured in **staff spaces** (one
@@ -96,6 +101,22 @@ class StaffMetrics {
   static const barlineThickness = space * 0.16;
   static const ledgerLineThickness = space * 0.16;
 
+  /// The stem's width in **staff spaces** — the layout works in those, and
+  /// [stemThickness] is the same number as a fraction of the square, for the
+  /// painter. Bravura's engraving default.
+  static const stemWidth = 0.12;
+  static const stemThickness = space * stemWidth;
+
+  /// How long a stem is, in staff spaces, measured from the head it grows out
+  /// of — so a stem-up triad's tip lands around the middle line, as engraved.
+  static const stemLength = 3.5;
+
+  /// The least a stem may show past the head at its far end. A chord wider than
+  /// [stemLength] lengthens to this instead of keeping the nominal length: a
+  /// stem measured past the *far* head would put a bass chord's tip through the
+  /// treble stave.
+  static const stemOverhang = 1.0;
+
   /// How far a ledger line reaches past the notehead on each side.
   static const ledgerLineExtension = 0.4;
 
@@ -112,10 +133,10 @@ class StaffMetrics {
   static const clefStart = -6.2;
 
   /// Left edge of the notehead, centred on the square (heads register at x 0).
-  static final noteX = -MusicSymbol.noteQuarterUp.width / 2;
+  static final noteX = -MusicSymbol.noteheadBlack.width / 2;
 
   /// The whole note's own left edge, centred (it is wider than a stemmed head).
-  static final wholeNoteX = -MusicSymbol.noteWhole.width / 2;
+  static final wholeNoteX = -MusicSymbol.noteheadWhole.width / 2;
 
   static const accidentalGap = 0.25;
 

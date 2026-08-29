@@ -8,7 +8,6 @@ import '../model/score.dart';
 import '../model/spelling.dart';
 import '../model/staff_placement.dart';
 import '../painting/score_painter.dart';
-import 'staff_label.dart';
 
 /// How long a note takes to settle onto the staff — reads as settling, not lag.
 const _entry = Duration(milliseconds: 300);
@@ -37,7 +36,6 @@ class StaffView extends StatefulWidget {
     this.correct = const {},
     this.scored = const {},
     this.scoredColumn = 0,
-    this.readout,
     this.color,
     this.playedColor,
     this.correctColor,
@@ -60,10 +58,6 @@ class StaffView extends StatefulWidget {
   /// with the score or snapping forward when the scroll lands.
   final Set<int> scored;
   final int scoredColumn;
-
-  /// Hung above the system, where there is room on a phone — the names under it
-  /// already fill the space below.
-  final Widget? readout;
 
   final Color? color;
   final Color? playedColor;
@@ -200,8 +194,6 @@ class _StaffViewState extends State<StaffView> {
         ),
         _columns(layout, size, color),
         ..._overlays(layout, measure, size, playedColor, correctColor),
-        ..._labelRows(layout, size, color),
-        _readoutSlot(layout, size),
       ],
     );
   }
@@ -440,7 +432,7 @@ class _StaffViewState extends State<StaffView> {
   ) {
     final resolved = <HeldNote>[];
     for (final note in notes) {
-      final stave = staveForNote(layout, note);
+      final stave = staveForNote(layout, note, column);
       // A key the column asks for is (re)written its way — held on from a flat
       // chord into a sharp one that wants the same key, it would otherwise keep
       // its old spelling and sit a step off the notehead it is answering.
@@ -479,94 +471,6 @@ class _StaffViewState extends State<StaffView> {
     return _write(note, stave, last.spelling, last.column, last.clef);
   }
 
-  /// One name row per stave, below the system: the keys to press and, under
-  /// them, the chord they spell. Following the notes leaves no room on a phone,
-  /// so each row shows only the cursor's column, sliding as it advances.
-  List<Widget> _labelRows(ScoreLayout layout, Size size, Color color) {
-    if (layout.isEmpty) return const [];
-    // The name follows the cursor, not the scroll. `layout.base` is the
-    // *animated* position floored, so it only reaches the new column once the
-    // 340 ms scroll lands — which left the name a whole scroll behind the note
-    // it names. The centred modes have no scroll to wait on, so reading the
-    // cursor here is what makes every mode hand the name over at the same
-    // moment.
-    final column =
-        widget.score.columns[widget.cursor.clamp(
-          0,
-          widget.score.columns.length - 1,
-        )];
-    final rowHeight =
-        (labelSize + (widget.score.hasCaptions ? captionSize : 0)) * staffSpace;
-    final top = layout.bottomStaveY + layout.labelDropSpaces * staffSpace;
-
-    return [
-      for (final stave in layout.staves)
-        Positioned(
-          top: top + stave.index * rowHeight,
-          left: 0,
-          right: 0,
-          child: _NameRow(
-            width: size.width,
-            voice: column.voices.elementAtOrNull(stave.index),
-            captioned: widget.score.hasCaptions,
-            color: color,
-          ),
-        ),
-    ];
-  }
-
-  Widget _readoutSlot(ScoreLayout layout, Size size) => Positioned(
-    bottom: size.height - layout.topStaveY + playedRise * staffSpace,
-    left: 16,
-    right: 16,
-    child: widget.readout ?? const SizedBox.shrink(),
-  );
-}
-
-/// One stave's name row: what to press, and under it what it spells.
-class _NameRow extends StatelessWidget {
-  const _NameRow({
-    required this.width,
-    required this.voice,
-    required this.captioned,
-    required this.color,
-  });
-
-  final double width;
-  final ScoreVoice? voice;
-  final bool captioned;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    final label = voice?.label;
-    final caption = voice?.caption;
-    return SlidingLabel(
-      width: width,
-      slot: (label, caption),
-      child: label == null
-          ? null
-          : Column(
-              mainAxisSize: .min,
-              children: [
-                // No text scaling: names are sized in staff units, like glyphs.
-                Text(
-                  label,
-                  textAlign: .center,
-                  textScaler: TextScaler.noScaling,
-                  style: labelStyle(color),
-                ),
-                if (captioned)
-                  Text(
-                    caption ?? '',
-                    textAlign: .center,
-                    textScaler: TextScaler.noScaling,
-                    style: captionStyle(color),
-                  ),
-              ],
-            ),
-    );
-  }
 }
 
 /// The keys the entry animations are switched on.

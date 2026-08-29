@@ -7,6 +7,7 @@ import '../view_models/game_controller.dart';
 import '../view_models/game_settings_controller.dart';
 import '../view_models/game_state.dart';
 import '../view_models/high_scores.dart';
+import 'played_readout.dart';
 import 'verdict_mark.dart';
 
 /// How a changed value settles.
@@ -20,6 +21,9 @@ const _urgent = Duration(seconds: 15);
 
 /// Where the key name hangs, below the two readings' captions.
 const _keyNameTop = 46.0;
+
+/// Between the readings and the line the verdict and the played name share.
+const _verdictTop = 32.0;
 
 const _tabular = [FontFeature.tabularFigures()];
 
@@ -58,14 +62,14 @@ class GameHud extends ConsumerWidget {
 
     return Stack(
       children: [
-        // Both readings are flexible: at the app's 1.5x text scale a score with
-        // its saved top three beside it runs into the clock on a 360 dp phone.
-        Row(
-          crossAxisAlignment: .start,
+        Column(
+          mainAxisSize: .min,
           children: [
-            Column(
+            // Both readings are flexible: at the app's 1.5x text scale a score
+            // with its saved top three beside it runs into the clock on a
+            // 360 dp phone.
+            Row(
               crossAxisAlignment: .start,
-              mainAxisSize: .min,
               children: [
                 _Reading(
                   caption: 'Score',
@@ -74,20 +78,28 @@ class GameHud extends ConsumerWidget {
                   animate: true,
                   topScores: topScores,
                 ),
-                const Padding(
-                  padding: .only(top: 32),
-                  child: VerdictMark(),
+                Spacer(),
+                _Reading(
+                  caption: 'Time',
+                  value: _formatTime(remaining),
+                  alignment: .end,
+                  color: remaining != null && remaining <= _urgent
+                      ? Theme.of(context).colorScheme.primary
+                      : null,
                 ),
               ],
             ),
-            Spacer(),
-            _Reading(
-              caption: 'Time',
-              value: _formatTime(remaining),
-              alignment: .end,
-              color: remaining != null && remaining <= _urgent
-                  ? Theme.of(context).colorScheme.primary
-                  : null,
+            const SizedBox(height: _verdictTop),
+            // The verdict and the name of what is under the hands read as one
+            // line: the mark hard left, the name centred across the width.
+            // The name used to hang off the top stave inside the staff itself,
+            // which moved it whenever the system did.
+            const Stack(
+              alignment: .center,
+              children: [
+                Align(alignment: .centerLeft, child: VerdictMark()),
+                PlayedReadout(),
+              ],
             ),
           ],
         ),

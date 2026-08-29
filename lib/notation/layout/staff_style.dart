@@ -17,21 +17,6 @@ const captionSize = 1.7;
 /// context, not the thing being asked for, so it is drawn under [labelSize].
 const keyNameSize = 1.0;
 
-/// How far the name sits below the lowest stave's middle line, in staff spaces.
-/// Far enough to clear notes on ledger lines under the staff.
-const labelDrop = 5.72;
-
-/// How far the first name row sits below the lowest stave on a two-stave
-/// system: there is a second row under it, so it starts higher to keep both on
-/// screen. A single stave takes [labelDrop], putting its name exactly where
-/// every other mode puts one.
-const labelDropGrand = 3.92;
-
-/// Where the played-note readout hangs: its bottom edge this many staff spaces
-/// above the *top* stave's middle line. The name already fills the space under
-/// the system, so what is being played goes above it.
-const playedRise = 8.0;
-
 /// How far a name travels as it arrives and leaves, as a fraction of the width
 /// — it is centred, so this is how far off-centre it starts and ends.
 const labelSlide = 0.2;
@@ -57,9 +42,15 @@ const clefMargin = 12.0;
 /// Width reserved for the clef before the key signature, in staff spaces.
 const clefBox = 3.4;
 
-/// Half the distance between the two staff centres, in spaces. Middle C then
-/// falls exactly midway — one ledger below the treble, one above the bass.
-const staffHalfGap = 3.0;
+/// Half the distance between the two staff centres, in spaces.
+///
+/// Widened from 3 when chords gained real stems. At 3 the staves left two clear
+/// spaces between them, and a bass chord's stem reaching up met a treble note
+/// hanging below its staff — `blue.song`'s right hand reaches down to B3 — so
+/// the two stems read as one line drawn through the whole system. Four is still
+/// far tighter than print, which uses about five, and it costs no height: the
+/// staves are centred in whatever box the view is given.
+const staffHalfGap = 4.0;
 
 /// Opacity by distance ahead of the cursor: the current column is solid, the
 /// upcoming ones fade back, and the fourth is invisible — so a column fades in
