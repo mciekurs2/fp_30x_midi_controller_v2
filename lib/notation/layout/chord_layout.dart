@@ -163,9 +163,10 @@ ChordLayout layoutChord(
       }
     } else {
       from = StaffMetrics.y(anchorStep);
-      // Measured from the head the stem grows out of, and lengthened only when
-      // the chord is wider than that — never a fixed reach past the far head,
-      // which on an octave would run the tip into the next stave.
+      // The stem grows with the chord: it clears the far head by
+      // `stemOverhang`, and never falls below a lone note's length. Measuring
+      // the nominal length from the head it grows *out of* instead leaves a
+      // wide chord's tip closing on its far head, which reads as stubby.
       final far = StaffMetrics.y(stemDown ? bottom : top);
       final reach = math.max(
         StaffMetrics.stemLength,

@@ -39,6 +39,7 @@ class StaffView extends StatefulWidget {
     this.color,
     this.playedColor,
     this.correctColor,
+    this.scale = 1,
   });
 
   final Score score;
@@ -62,6 +63,15 @@ class StaffView extends StatefulWidget {
   final Color? color;
   final Color? playedColor;
   final Color? correctColor;
+
+  /// How large the notation draws, 1.0 being its own size.
+  ///
+  /// The staff is laid out in a box scaled *up* by the inverse and painted back
+  /// down into the real one, so glyphs, staff spacing, margins and the columns
+  /// that fit all shrink by the same factor — rather than the notation keeping
+  /// its size and simply losing room. Sizing anything here in pixels instead
+  /// would drift from [staffSpace], which the whole notation is a fraction of.
+  final double scale;
 
   @override
   State<StaffView> createState() => _StaffViewState();
@@ -122,14 +132,14 @@ class _StaffViewState extends State<StaffView> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final size = constraints.biggest;
+        final size = constraints.biggest / widget.scale;
         final target = widget.cursor.toDouble();
         final snap =
             (target - _lastPosition).abs() > snapDistance ||
             widget.score.columns.length <= 1;
         _lastPosition = target;
 
-        return TweenAnimationBuilder<double>(
+        final staff = TweenAnimationBuilder<double>(
           // Only `end` is compared build to build, so restating `begin` here is
           // read on the first frame alone; the tween carries on from wherever
           // it had reached.
@@ -142,6 +152,20 @@ class _StaffViewState extends State<StaffView> {
             color: color,
             playedColor: playedColor,
             correctColor: correctColor,
+          ),
+        );
+        if (widget.scale == 1) return staff;
+        // The staff is built at [size] — larger than the box it is given — so
+        // it needs constraints to match before the transform brings it back
+        // inside. A plain child would be clipped to the box by the Stack.
+        return Transform.scale(
+          scale: widget.scale,
+          child: OverflowBox(
+            minWidth: size.width,
+            maxWidth: size.width,
+            minHeight: size.height,
+            maxHeight: size.height,
+            child: staff,
           ),
         );
       },

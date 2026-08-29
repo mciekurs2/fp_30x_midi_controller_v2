@@ -140,10 +140,14 @@ stems — pointing *different ways* where it straddled the middle line, because 
 places the stem itself. `layoutChord` decides, once, for the whole stack:
 
 - **Direction** — the head furthest from the middle line wins; a tie hangs down.
-- **Length** — measured from the head the stem *grows out of*, so a triad's tip lands about the
-  middle line. A chord wider than `stemLength` lengthens to clear its far head by
-  `stemOverhang` instead. Measuring a fixed reach past the *far* head, which is the tempting
-  reading of the rule, sends an octave in the left hand a whole staff up.
+- **Length** — the longer of `stemLength` (3.5 spaces, a lone note's) and the chord's own span
+  plus `stemOverhang`, so the stem grows with the chord instead of the tip closing on the far
+  head as it widens. Measured as a nominal length from the head it grows *out of* — the
+  tempting reading, and what this shipped with first — `[C3 G3 C4]` showed one space past its
+  bottom note and read as stubby. **`stemOverhang` is the knob**: the published score engraves
+  bar 1's `[B3 D4 E4 G4]` at the full 3.5 there, which is longer than this app wants on a
+  phone; 2.25 sits between that and the original 1.0. Raising it costs height, which
+  `staffHalfGap` covers.
 - **Seconds** — two heads a diatonic step apart cannot share a side of the stem, so the second
   one crosses it: right of an up stem, left of a down one, sharing the stem rather than
   clearing it. A cluster alternates, and two heads on one step (F♮ beside F♯) split the same
@@ -241,11 +245,29 @@ makes `PlayHands.both` playable. `song_parser_test.dart` guards that invariant.
 - **Enum dot-shorthands** (`.min`, `.center`, `.fromLTRB(...)`) are used throughout. Match the
   surrounding style.
 - **Notation geometry is copied from v1, not re-derived.** `staffScale = 330`,
-  `headroom = 3.93` and the rest of `StaffMetrics` are load-bearing. `labelDrop` /
-  `labelDropGrand` are the exception — tuned by eye for this app, and the knob to reach for
-  when the name row wants moving. `stemLength` / `stemOverhang` / `staffHalfGap` are this
-  app's own, added with drawn stems — see *How a chord is drawn*. Express any such tweak in staff spaces there, never as raw
-  pixels at the call site: `staffSpace` is what the whole notation scales by.
+  `headroom = 3.93` and the rest of `StaffMetrics` are load-bearing. `stemLength` /
+  `stemOverhang` / `staffHalfGap` are this app's own, added with drawn stems — see *How a
+  chord is drawn*. Express any such tweak in staff spaces there, never as raw pixels at the
+  call site: `staffSpace` is what the whole notation scales by.
+
+### The knobs worth knowing
+
+Every one of these is a named constant with the reasoning on it; none is a magic number at a
+call site.
+
+| Knob | Where | What it moves |
+| --- | --- | --- |
+| `staffViewScale` | `game_staff_view.dart` | How large the staff draws, 1.0 being engraved size |
+| `nameInset` / `oneStaveLift` | `game_names.dart` | Where the name rows hang, and how much higher a one-stave round puts them |
+| `stemOverhang` | `glyph.dart` | How far a chord's stem shows past its far head |
+| `staffHalfGap` | `staff_style.dart` | How far apart a grand staff's two staves sit |
+| `columnGap` | `staff_style.dart` | Clear space between columns of sheet music |
+
+`staffViewScale` works by laying the staff out in a box scaled *up* by the inverse and painting
+it back down, so glyphs, staff spacing, margins and the columns that fit all shrink together —
+rather than the notation keeping its size and simply losing room. Scaling any single constant
+instead would drift from `staffSpace`, which the whole notation is a fraction of. The name rows
+are a separate widget sized in staff units of their own, so they do not follow it.
 - **Layout changes need a 360 dp widget test** that applies `withTextScale`, or an overflow
   will not be caught.
 - **`AnimatedSwitcher` keys must be value-equal.** Never key one on a `List`, a `Set` or a
@@ -256,7 +278,8 @@ makes `PlayHands.both` playable. `song_parser_test.dart` guards that invariant.
 
 `blue.song` covers bars 1–20 only. From bar 21 the left hand drops its block chords for a
 running single-note riff, which the hybrid rule has nothing to thin against; the photographed
-pages for the rest are in `song_pngs/`.
+pages for the rest are in `song_pngs/`, which is **git-ignored** — they are scans of a
+published arrangement, so they stay on the machine that transcribes from them.
 
 Also unported: a single-note version of the key-signature drill (the notation is all there
 — chords-in-key uses it — it just is not a `GameMode`). Chord **variations** beyond major/minor

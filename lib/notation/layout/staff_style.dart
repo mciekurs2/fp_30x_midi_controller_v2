@@ -44,13 +44,15 @@ const clefBox = 3.4;
 
 /// Half the distance between the two staff centres, in spaces.
 ///
-/// Widened from 3 when chords gained real stems. At 3 the staves left two clear
-/// spaces between them, and a bass chord's stem reaching up met a treble note
-/// hanging below its staff — `blue.song`'s right hand reaches down to B3 — so
-/// the two stems read as one line drawn through the whole system. Four is still
-/// far tighter than print, which uses about five, and it costs no height: the
-/// staves are centred in whatever box the view is given.
-const staffHalfGap = 4.0;
+/// Widened from 3 when chords gained real stems, and again to print's own five
+/// when those stems took their full engraved length. At 3 the staves left two
+/// clear spaces between them and a bass chord's stem reaching up met a treble
+/// note hanging below its staff — `blue.song`'s right hand reaches down to B3
+/// — so the two read as one line through the system. At 4 the same happened
+/// once a bass octave's stem reached an octave past its top head: `[G2 D3 G3]`
+/// tips out exactly where B3 hangs. Five clears it by two spaces, and it costs
+/// no height: the staves are centred in whatever box the view is given.
+const staffHalfGap = 5.0;
 
 /// Opacity by distance ahead of the cursor: the current column is solid, the
 /// upcoming ones fade back, and the fourth is invisible — so a column fades in

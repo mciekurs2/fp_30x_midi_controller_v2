@@ -40,6 +40,19 @@ void main() {
       .where((paint) => paint.painter is T)
       .length;
 
+  testWidgets('a scaled staff draws smaller in the same box', (tester) async {
+    final score = Score.chord([60, 64, 67], label: 'C');
+    await pump(tester, StaffView(score: score, scale: 0.5));
+
+    final lines = find.byWidgetPredicate(
+      (widget) => widget is CustomPaint && widget.painter is StaffLinesPainter,
+    );
+    // Laid out at twice the box, so every element keeps its proportions...
+    expect(tester.getSize(lines), _phone * 2);
+    // ...and painted back down into the box it was given, not past it.
+    expect(tester.getRect(lines).size, _phone);
+  });
+
   testWidgets('a wrong press does not re-animate the target', (tester) async {
     final target = Score.chord([60, 64, 67], label: 'C');
     await pump(tester, StaffView(score: target));

@@ -3,6 +3,7 @@ import 'package:fp_30x_midi_controller_v2/domain/models/note_value.dart';
 import 'package:fp_30x_midi_controller_v2/notation/layout/chord_layout.dart';
 import 'package:fp_30x_midi_controller_v2/notation/layout/glyph.dart';
 import 'package:fp_30x_midi_controller_v2/notation/layout/score_layout.dart';
+import 'package:fp_30x_midi_controller_v2/notation/layout/staff_style.dart';
 import 'package:fp_30x_midi_controller_v2/notation/model/clef.dart';
 import 'package:fp_30x_midi_controller_v2/notation/model/score.dart';
 import 'package:fp_30x_midi_controller_v2/notation/model/spelling.dart';
@@ -45,20 +46,49 @@ void main() {
       expect(chord.stem!.to, greaterThan(StaffMetrics.y(chord.steps.last)));
     });
 
-    test('a triad takes the nominal stem length from its lowest head', () {
-      // C4-E4-G4 is narrower than a stem is long, so the tip lands where a
-      // lone C4's would: half a space above the middle line.
-      final chord = _chord([60, 64, 67]);
+    test('a lone note reaches a stem past itself', () {
+      final note = _chord([60]);
+      expect(
+        note.stem!.to,
+        StaffMetrics.y(note.steps.first) + StaffMetrics.stemLength,
+      );
+    });
+
+    test('a chord clears its top head by the overhang, whatever its span', () {
+      // The stem grows with the chord rather than the tip closing on the top
+      // head as the chord widens — which is what a nominal length measured
+      // from the head it grows *out of* does, and it reads stubby.
+      for (final notes in [
+        [60, 64, 67],
+        [59, 62, 64, 67],
+      ]) {
+        final chord = _chord(notes);
+        expect(chord.stemDown, isFalse);
+        expect(
+          chord.stem!.to,
+          closeTo(
+            StaffMetrics.y(chord.steps.last) + StaffMetrics.stemOverhang,
+            1e-9,
+          ),
+          reason: '$notes',
+        );
+      }
+    });
+
+    test('a narrow interval keeps a lone note\'s length', () {
+      // C4-E4: a third, close enough that the nominal length still reaches
+      // further than clearing the top head would.
+      final chord = _chord([60, 64]);
       expect(
         chord.stem!.to,
         StaffMetrics.y(chord.steps.first) + StaffMetrics.stemLength,
       );
     });
 
-    test('a chord wider than a stem lengthens it past the far head', () {
-      // G2-D3-G3, the left hand of blue.song's intro: an octave, wider than a
-      // stem is long. Measured past the top head instead it would reach a
-      // whole staff up, through the treble stave of the same system.
+    test('a bass octave clears the stave above it', () {
+      // G2-D3-G3, the left hand of blue.song's intro. Its stem is the tallest
+      // in the chart, and `staffHalfGap` is what keeps the tip clear of a
+      // treble note hanging below its own stave — B3, in the same song.
       final chord = layoutChord(
         [
           for (final note in [43, 50, 55])
@@ -66,10 +96,8 @@ void main() {
         ],
         NoteValue.crotchet,
       );
-      expect(chord.stemDown, isFalse);
-      final top = StaffMetrics.y(chord.steps.last);
-      expect(chord.stem!.to, top + StaffMetrics.stemOverhang);
-      expect(chord.stem!.to, lessThan(top + StaffMetrics.stemLength));
+      final b3 = StaffMetrics.y(StaffPlacement.inClef(59, Clef.treble).steps);
+      expect(chord.stem!.to, lessThan(b3 + 2 * staffHalfGap - 1));
     });
 
     test('a chord reaching further above the line hangs its stem down', () {

@@ -107,15 +107,18 @@ class StaffMetrics {
   static const stemWidth = 0.12;
   static const stemThickness = space * stemWidth;
 
-  /// How long a stem is, in staff spaces, measured from the head it grows out
-  /// of — so a stem-up triad's tip lands around the middle line, as engraved.
+  /// A lone note's stem, in staff spaces — one octave, the engraving standard.
   static const stemLength = 3.5;
 
-  /// The least a stem may show past the head at its far end. A chord wider than
-  /// [stemLength] lengthens to this instead of keeping the nominal length: a
-  /// stem measured past the *far* head would put a bass chord's tip through the
-  /// treble stave.
-  static const stemOverhang = 1.0;
+  /// How far a chord's stem shows past the head at its far end, in staff
+  /// spaces. **The knob for chord stem length.**
+  ///
+  /// A chord's stem is the longer of [stemLength] and its own span plus this,
+  /// so it grows with the chord instead of the tip closing on the far head.
+  /// The published score engraves `blue.song`'s `[B3 D4 E4 G4]` at the full
+  /// 3.5 here; 1.0 leaves an octave like `[C3 G3 C4]` visibly stubby. This
+  /// sits between the two.
+  static const stemOverhang = 2.0;
 
   /// How far a ledger line reaches past the notehead on each side.
   static const ledgerLineExtension = 0.4;

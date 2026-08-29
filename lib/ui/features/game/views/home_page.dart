@@ -41,14 +41,10 @@ class HomePage extends ConsumerWidget {
             ),
             Center(child: GameStaffView()),
             // The names hang off the bottom of the screen, mirroring the HUD's
-            // inset at the top, rather than off the staff they belong to.
-            Align(
-              alignment: .bottomCenter,
-              child: Padding(
-                padding: .fromLTRB(24, 0, 24, 150),
-                child: GameNames(),
-              ),
-            ),
+            // inset at the top, rather than off the staff they belong to. How
+            // far in is `nameInset`, which GameNames applies itself: it varies
+            // with how many staves the round draws.
+            Align(alignment: .bottomCenter, child: GameNames()),
             Align(
               alignment: .bottomCenter,
               child: Padding(

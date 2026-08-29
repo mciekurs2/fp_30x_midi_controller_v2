@@ -4,6 +4,14 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../../notation/widgets/staff_view.dart';
 import '../view_models/game_controller.dart';
 
+/// How large the notation draws, 1.0 being the size it is engraved at.
+///
+/// The one knob for the staff's size on screen: it shrinks glyphs, staff
+/// spacing and margins together, and the view keeps the place and the box it
+/// already has. The name rows under it are sized in staff units of their own
+/// (`labelSize`), so they do not follow this.
+const staffViewScale = 0.9;
+
 /// The staff, wired to the round.
 ///
 /// Every mode-specific decision — which score, which column, which held keys
@@ -35,6 +43,7 @@ class GameStaffView extends ConsumerWidget {
       correct: staff.correct,
       scored: staff.scored,
       scoredColumn: staff.gradedColumn,
+      scale: staffViewScale,
     );
   }
 }

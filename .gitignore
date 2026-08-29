@@ -46,3 +46,6 @@ app.*.map.json
 
 # graphify knowledge graph — derived, rebuild with /graphify
 graphify-out/
+
+# Photographed pages of published scores, transcribed from by hand.
+song_pngs/
