@@ -105,8 +105,10 @@ class _SettingsSheet extends ConsumerWidget {
         if (knobs.contains(SettingKnob.duration)) const _DurationKnob(),
         if (knobs.contains(SettingKnob.chordKey)) const _KeyKnob(),
         if (knobs.contains(SettingKnob.octaves)) const _OctavesKnob(),
-        if (knobs.contains(SettingKnob.song)) const _SongKnob(),
+        // Hands first: it is the choice a round is most often changed for, and
+        // the song list is long enough to push anything under it off the sheet.
         if (knobs.contains(SettingKnob.hands)) const _HandsKnob(),
+        if (knobs.contains(SettingKnob.song)) const _SongKnob(),
       ],
     );
   }
@@ -223,7 +225,7 @@ class _KeyKnob extends ConsumerWidget {
       crossAxisAlignment: .stretch,
       spacing: sheetSpacing,
       children: [
-        SheetHeader(title: 'Key', value: chosen.name),
+        const SheetHeader(title: 'Key'),
         ChipRow<Tonality>(
           items: Tonality.values,
           label: (tonality) => tonality.title,
@@ -263,36 +265,43 @@ class _SongKnob extends ConsumerWidget {
     );
     final notifier = ref.read(gameSettingsControllerProvider.notifier);
 
+    final library = ref.watch(songLibraryProvider);
+
     return Column(
       mainAxisSize: .min,
       crossAxisAlignment: .stretch,
       children: [
         const SheetHeader(title: 'Song'),
-        ref
-            .watch(songLibraryProvider)
-            .when(
-              loading: () => const Padding(
-                padding: .all(16),
-                child: Center(child: CircularProgressIndicator()),
-              ),
-              error: (_, _) => const Text('Could not load songs.'),
-              data: (songs) => Column(
-                mainAxisSize: .min,
-                crossAxisAlignment: .stretch,
-                children: [
-                  if (songs.isEmpty) const Text('No songs bundled.'),
-                  for (final song in songs)
-                    ListTile(
-                      contentPadding: .zero,
-                      title: Text(song.title),
-                      trailing: song.asset == chosen
-                          ? const Icon(Icons.check)
-                          : null,
-                      onTap: () => notifier.setSong(song.asset),
-                    ),
-                ],
-              ),
+        library.when(
+          loading: () => const Padding(
+            padding: .all(16),
+            child: Center(child: CircularProgressIndicator()),
+          ),
+          error: (_, _) => const Text('Could not load songs.'),
+          // A radio each, rather than a tick on the chosen one alone: with
+          // nothing drawn beside the others the list read as a menu of
+          // actions instead of one choice among several.
+          data: (songs) => RadioGroup<String>(
+            groupValue: chosen,
+            onChanged: (asset) {
+              if (asset != null) notifier.setSong(asset);
+            },
+            child: Column(
+              mainAxisSize: .min,
+              crossAxisAlignment: .stretch,
+              children: [
+                if (songs.isEmpty) const Text('No songs bundled.'),
+                for (final song in songs)
+                  RadioListTile<String>(
+                    value: song.asset,
+                    contentPadding: .zero,
+                    controlAffinity: .leading,
+                    title: Text(song.title),
+                  ),
+              ],
             ),
+          ),
+        ),
       ],
     );
   }
@@ -313,7 +322,7 @@ class _HandsKnob extends ConsumerWidget {
       crossAxisAlignment: .stretch,
       spacing: sheetSpacing,
       children: [
-        SheetHeader(title: 'Hands', value: hands.title),
+        const SheetHeader(title: 'Hands'),
         ChipRow<PlayHands>(
           items: PlayHands.offered,
           label: (hand) => hand.title,

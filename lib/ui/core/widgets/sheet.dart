@@ -39,6 +39,11 @@ class SheetBody extends StatelessWidget {
 }
 
 /// A section title, with the current value trailing it.
+///
+/// [value] is for a setting whose choice is not legible from its own control —
+/// the time limit's slider, which names its position only while it is being
+/// dragged. Where the control already shows what is chosen, as a chip row or a
+/// radio list does, the trailing value only says it twice.
 class SheetHeader extends StatelessWidget {
   const SheetHeader({super.key, required this.title, this.value});
 

@@ -214,7 +214,7 @@ void main() {
       expect(layout.alphaAt(4), 0.0);
     });
 
-    test('a crowded score squeezes the gap rather than running off', () {
+    test('a crowded score steps by what its widest pair needs', () {
       final wide = Score(
         staves: const [Stave(Clef.treble)],
         columns: [
@@ -235,14 +235,36 @@ void main() {
       );
       final measure = ScoreMeasure(wide);
       final lead = leadFor(wide, Clef.treble);
-      expect(measure.gapFor(_width, lead), lessThan(columnGap));
-      expect(measure.gapFor(_width, lead), greaterThanOrEqualTo(minColumnGap));
+      final ink = measure.extents.first;
+      // Wider than the window would like to spread it: the columns clear each
+      // other rather than the run being squeezed to fit.
+      expect(
+        measure.strideFor(_width, lead),
+        closeTo(ink.right + ink.left + columnGap, 1e-9),
+      );
     });
 
-    test('the gap is a property of the score, not of the frame', () {
+    test('one step spaces every column, however narrow its ink', () {
+      // A run of lone semibreves: packed by their own ink they bunched into a
+      // cluster, which is what a melody line in sheet music looks like.
       final measure = ScoreMeasure(run(8));
       final lead = leadFor(run(8), Clef.treble);
-      expect(measure.gapFor(_width, lead), measure.gapFor(_width, lead));
+      final stride = measure.strideFor(_width, lead);
+      final ink = measure.extents.first;
+      expect(stride, greaterThan(ink.right + ink.left + columnGap));
+
+      final layout = _layout(run(8), position: 2);
+      final steps = [
+        for (var i = layout.first; i < layout.last; i++)
+          layout.columnX(i + 1) - layout.columnX(i),
+      ];
+      expect(steps, everyElement(closeTo(steps.first, 1e-9)));
+    });
+
+    test('the step is a property of the score, not of the frame', () {
+      final measure = ScoreMeasure(run(8));
+      final lead = leadFor(run(8), Clef.treble);
+      expect(measure.strideFor(_width, lead), measure.strideFor(_width, lead));
     });
   });
 

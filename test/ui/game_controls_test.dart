@@ -11,6 +11,12 @@ import '../support/fakes.dart';
 /// A short phone: the least room a sheet ever has to fit into.
 const _shortPhone = Size(360, 640);
 
+/// Whether the chip labelled [label] is the one in force. The chips carry the
+/// choice on their own — a sheet header repeating it would only say it twice.
+bool chosenChip(WidgetTester tester, String label) => tester
+    .widget<ChoiceChip>(find.widgetWithText(ChoiceChip, label))
+    .selected;
+
 void main() {
   Future<void> pump(WidgetTester tester) async {
     tester.view
@@ -115,15 +121,14 @@ void main() {
     expect(find.widgetWithText(ChoiceChip, 'Left'), findsOneWidget);
     expect(find.widgetWithText(ChoiceChip, 'Both'), findsOneWidget);
 
-    // The header names the hand in force, and follows the picker — two of the
-    // chosen name on screen (header + chip), one of the other.
-    expect(find.text('Right'), findsNWidgets(2));
-    expect(find.text('Left'), findsOneWidget);
+    // The chips carry the choice; nothing else on the sheet repeats it.
+    expect(chosenChip(tester, 'Right'), isTrue);
+    expect(chosenChip(tester, 'Left'), isFalse);
 
     await tester.tap(find.widgetWithText(ChoiceChip, 'Left'));
     await tester.pumpAndSettle();
-    expect(find.text('Left'), findsNWidgets(2));
-    expect(find.text('Right'), findsOneWidget);
+    expect(chosenChip(tester, 'Left'), isTrue);
+    expect(chosenChip(tester, 'Right'), isFalse);
   });
 
   testWidgets('the key picker re-spells itself with the tonality', (
@@ -133,14 +138,17 @@ void main() {
     await chooseMode(tester, GameMode.keyChords);
     await openSettings(tester);
 
-    expect(find.text('C major'), findsOneWidget);
+    expect(chosenChip(tester, 'C'), isTrue);
+    expect(chosenChip(tester, 'Major'), isTrue);
     await tester.tap(find.widgetWithText(ChoiceChip, 'G'));
     await tester.pumpAndSettle();
-    expect(find.text('G major'), findsOneWidget);
+    expect(chosenChip(tester, 'G'), isTrue);
+    expect(chosenChip(tester, 'C'), isFalse);
 
     await tester.tap(find.widgetWithText(ChoiceChip, 'Minor'));
     await tester.pumpAndSettle();
-    expect(find.text('G minor'), findsOneWidget);
+    expect(chosenChip(tester, 'G'), isTrue);
+    expect(chosenChip(tester, 'Minor'), isTrue);
     // Pitch class 6 reads Gb as a major and F# as a minor.
     expect(find.widgetWithText(ChoiceChip, 'Gb'), findsNothing);
     expect(find.widgetWithText(ChoiceChip, 'F#'), findsOneWidget);

@@ -117,6 +117,16 @@ columns when a flat chord landed. The target still never shifts as *live* keys g
 are fitted last. The cost is that releasing a scored key lets the target's accidentals close
 up, which is invisible in play because scoring and the next target land in the same event.
 
+**Sheet music steps by one constant stride**, not by each column's ink
+(`ScoreMeasure.strideFor`). Packing every column against the last by its own extent made the
+spacing follow what was being played: `blue.song`'s four-note chords with accidentals sat far
+apart while the single melody notes from bar 5 bunched into a cluster — the same score reading
+as two different pieces. The stride is the wider of an even spread of `scoreWindow` columns
+across the staff and what the score's tightest neighbouring pair needs (`columnGap` between
+their ink), so a run of narrow columns keeps the spacing the wide ones set, and a dense score
+still never overlaps. Barlines fall midway through whatever clear space that leaves, which is
+why the painter measures the gap from the two columns rather than reading one number.
+
 The **name row follows the cursor, not the scroll.** `layout.base` is the animated scroll
 position floored, so in sheet music it only reaches the new column when the 340 ms scroll
 lands; reading it left the name a whole scroll behind the note it names. Centred modes have no
@@ -176,6 +186,14 @@ up met a treble note hanging below its staff, and the two read as one line throu
 
 Nothing else changes: not the controller, not the staff, not the HUD, not the sheet. (In v1
 this was a ten-site edit with no compiler help.)
+
+**A knob shows its own choice.** A chip row marks the chip in force and the song list gives
+every row a radio, so `SheetHeader`'s trailing value would only say it a second time — it is
+kept for the time limit alone, whose slider names its position only while it is being dragged.
+Widget tests read the control (`ChoiceChip.selected`) rather than that header text, which is
+what they meant anyway. The knobs are listed in the order the sheet draws them
+(`game_controls.dart`): hands before song, because hands is what a round is most often changed
+for and the song list grows.
 
 ### Data flow
 
@@ -261,7 +279,8 @@ call site.
 | `nameInset` / `oneStaveLift` | `game_names.dart` | Where the name rows hang, and how much higher a one-stave round puts them |
 | `stemOverhang` | `glyph.dart` | How far a chord's stem shows past its far head |
 | `staffHalfGap` | `staff_style.dart` | How far apart a grand staff's two staves sit |
-| `columnGap` | `staff_style.dart` | Clear space between columns of sheet music |
+| `columnGap` | `staff_style.dart` | The least clear space between two columns — only the floor under the even step |
+| `scoreWindow` | `staff_style.dart` | How many columns are shown at once |
 
 `staffViewScale` works by laying the staff out in a box scaled *up* by the inverse and painting
 it back down, so glyphs, staff spacing, margins and the columns that fit all shrink together —

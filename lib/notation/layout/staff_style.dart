@@ -63,14 +63,14 @@ const slotAlpha = [1.0, 0.45, 0.3, 0.0];
 /// fully invisible before it could reach the key signature.
 const fadeOutSpan = 0.45;
 
-/// Clear space between one column's ink and the next, in staff spaces. Columns
-/// are spaced by their actual ink extents (accidentals and dots included), so
-/// this is a real gap rather than a hoped-for one.
-const columnGap = 1.7;
-
-/// The least the gap may be squeezed to when a run of wide columns would
-/// otherwise reach off the right edge.
-const minColumnGap = 0.8;
+/// The least clear space between one column's ink and the next, in staff
+/// spaces — accidentals and dots included, so it is a real gap rather than a
+/// hoped-for one.
+///
+/// Only the floor: columns step by an even spread of the window across the
+/// staff, and this is what stops a score of dense chords from overlapping when
+/// that spread would be tighter than they can stand.
+const columnGap = 0.8;
 
 /// Breathing room kept clear at the right edge, in staff spaces.
 const rightMargin = 1.0;

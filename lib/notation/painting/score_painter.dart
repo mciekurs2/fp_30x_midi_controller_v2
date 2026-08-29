@@ -176,9 +176,18 @@ class ColumnsPainter extends CustomPainter {
       final tint = color.withValues(alpha: alpha);
 
       if (score.barlines && column.startsBar && i > 0) {
+        // Midway through the clear space before this column, which the even
+        // step leaves wider or narrower depending on what is either side.
+        final left = x - layout.extents[i]!.left * staffSpace;
+        final previous = layout.extents[i - 1];
         _paintBarline(
           canvas,
-          x - (layout.extents[i]!.left + layout.gap / 2) * staffSpace,
+          previous == null
+              ? left - layout.stride * staffSpace / 2
+              : (left +
+                        layout.columnX(i - 1) +
+                        previous.right * staffSpace) /
+                    2,
           tint,
         );
       }

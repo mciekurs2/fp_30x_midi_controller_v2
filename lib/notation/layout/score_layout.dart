@@ -57,30 +57,41 @@ class ScoreMeasure {
   /// as the cursor advances.
   bool get hasCaptions => score.hasCaptions;
 
-  double? _gap;
-  double? _gapWidth;
+  double? _stride;
+  double? _strideWidth;
 
-  /// The gap used between every column: the target gap unless the score's
-  /// widest run of [scoreWindow] columns needs it squeezed to fit.
-  double gapFor(double width, double lead) {
-    if (_gap case final cached? when _gapWidth == width) return cached;
+  /// How far apart consecutive columns sit, in staff spaces — one step for the
+  /// whole score, so the window reads as evenly spaced whatever is in it.
+  ///
+  /// Packing each column against the last by its own ink instead leaves the
+  /// spacing at the mercy of what is being played: `blue.song`'s four-note
+  /// chords with accidentals sit far apart, and the single melody notes from
+  /// bar 5 bunch up into a cluster. The step is the wider of what the score's
+  /// tightest neighbouring pair needs and an even spread of the window across
+  /// the staff, so a run of narrow columns keeps the spacing the wide ones set.
+  double strideFor(double width, double lead) {
+    if (_stride case final cached? when _strideWidth == width) return cached;
+    _strideWidth = width;
 
-    final ink = [for (final e in extents) e.left + e.right];
-    var worst = 0.0;
-    for (var i = 0; i < ink.length; i++) {
-      var run = 0.0;
-      for (var j = i; j < i + scoreWindow && j < ink.length; j++) {
-        run += ink[j];
+    // Never closer than the widest pair of neighbours can stand next to each
+    // other, whatever the width says.
+    var tightest = 0.0;
+    var widest = 0.0;
+    for (var i = 0; i < extents.length; i++) {
+      widest = math.max(widest, extents[i].right);
+      if (i + 1 < extents.length) {
+        tightest = math.max(
+          tightest,
+          extents[i].right + extents[i + 1].left + columnGap,
+        );
       }
-      worst = math.max(worst, run);
     }
 
-    final room = (width - lead) / staffSpace - rightMargin;
+    // The window spread across the staff: the cursor's column starts at the
+    // lead, and the last one ahead of it keeps its ink inside the margin.
+    final room = (width - lead) / staffSpace - rightMargin - widest;
     final spans = math.max(1, scoreWindow - 1);
-    _gapWidth = width;
-    return _gap = worst + columnGap * spans <= room
-        ? columnGap
-        : ((room - worst) / spans).clamp(minColumnGap, columnGap);
+    return _stride = math.max(tightest, room / spans);
   }
 
   Extent _columnExtent(ScoreColumn column) {
@@ -103,7 +114,7 @@ class ScoreLayout {
   const ScoreLayout({
     required this.staves,
     required this.lead,
-    required this.gap,
+    required this.stride,
     required this.position,
     required this.base,
     required this.shift,
@@ -121,8 +132,9 @@ class ScoreLayout {
   /// Where the notes begin, past the clef and key signature.
   final double lead;
 
-  /// One gap between every column in the score.
-  final double gap;
+  /// The step between one column and the next, in staff spaces — the same for
+  /// every column, so the spacing does not follow what is being played.
+  final double stride;
 
   /// The continuous cursor and its floored column.
   final double position;
@@ -184,7 +196,7 @@ ScoreLayout layoutScore(
     return _centeredLayout(measure, staves, lead, width, height);
   }
 
-  final gap = measure.gapFor(width, lead);
+  final stride = measure.strideFor(width, lead);
   final base = position.floor();
   // One column back so a played note can slide out, one past the window so the
   // next fades in as it arrives.
@@ -193,12 +205,9 @@ ScoreLayout layoutScore(
 
   final extents = <int, Extent>{};
   final xs = <int, double>{};
-  var pen = 0.0;
   for (var i = first; i <= last; i++) {
-    final extent = measure.extents[i];
-    extents[i] = extent;
-    xs[i] = pen + extent.left * staffSpace;
-    pen = xs[i]! + (extent.right + gap) * staffSpace;
+    extents[i] = measure.extents[i];
+    xs[i] = i * stride * staffSpace;
   }
 
   // Slide the run so the current column sits at the anchor; interpolating the
@@ -215,7 +224,7 @@ ScoreLayout layoutScore(
   return ScoreLayout(
     staves: staves,
     lead: lead,
-    gap: gap,
+    stride: stride,
     position: position,
     base: base,
     shift: shift,
@@ -269,7 +278,7 @@ ScoreLayout _centeredLayout(
   return ScoreLayout(
     staves: staves,
     lead: lead,
-    gap: 0,
+    stride: 0,
     position: 0,
     base: 0,
     shift: 0,
