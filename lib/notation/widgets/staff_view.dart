@@ -8,6 +8,7 @@ import '../model/score.dart';
 import '../model/spelling.dart';
 import '../model/staff_placement.dart';
 import '../painting/score_painter.dart';
+import 'layer_switcher.dart';
 
 /// How long a note takes to settle onto the staff — reads as settling, not lag.
 const _entry = Duration(milliseconds: 300);
@@ -230,9 +231,9 @@ class _StaffViewState extends State<StaffView> {
         reverseDuration: _exit,
         switchInCurve: Curves.easeOutCirc,
         switchOutCurve: Curves.easeInCubic,
-        transitionBuilder: drop
-            ? _dropTransition
-            : AnimatedSwitcher.defaultTransitionBuilder,
+        // Never the default builder: it keys each entry on the child's key,
+        // and these layers come back under keys they have worn before.
+        transitionBuilder: drop ? _dropTransition : fadeLayer,
         child: child,
       );
 
@@ -404,15 +405,16 @@ class _StaffViewState extends State<StaffView> {
     return extra;
   }
 
-  Widget _extraClef(HeldNote? note, StaveLayout stave, Size size) =>
-      note == null
-      ? SizedBox.shrink(key: ValueKey('no-extra-clef-${stave.index}'))
-      : CustomPaint(
-          // Colour is left out on purpose: a key turning from wrong to right
-          // repaints its clef rather than fading in a new one.
-          key: ValueKey(
-            'extra-clef-${stave.index}:${note.placement.clef.name}',
-          ),
+  Widget _extraClef(HeldNote? note, StaveLayout stave, Size size) {
+    // Colour is left out of the key on purpose: a key turning from wrong to
+    // right repaints its clef rather than fading in a new one.
+    final key = note == null
+        ? ValueKey('no-extra-clef-${stave.index}')
+        : ValueKey('extra-clef-${stave.index}:${note.placement.clef.name}');
+    return note == null
+        ? SizedBox.shrink(key: key)
+        : CustomPaint(
+          key: key,
           size: size,
           painter: ClefPainter(
             staves: [
@@ -425,6 +427,7 @@ class _StaffViewState extends State<StaffView> {
             color: note.color,
           ),
         );
+  }
 
   bool _isHeld(int note) =>
       widget.played.contains(note) || widget.scored.contains(note);

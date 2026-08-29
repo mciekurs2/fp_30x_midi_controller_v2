@@ -172,7 +172,7 @@ SongEvent _parseEvent(String token, MusicKey? key, int line) {
   }
 
   // A pitch runs up to its duration suffix, so split there and validate both.
-  final split = token.indexOf(RegExp(r'[whqe.]', caseSensitive: false), 1);
+  final split = token.indexOf(RegExp(r'[whqes.]', caseSensitive: false), 1);
   final pitch = split < 0 ? token : token.substring(0, split);
   final (value, dotted) = _parseDuration(
     split < 0 ? '' : token.substring(split),
@@ -232,6 +232,8 @@ SongNote _parseNote(String text, MusicKey? key, int line) {
         value = NoteValue.crotchet;
       case 'e':
         value = NoteValue.quaver;
+      case 's':
+        value = NoteValue.semiquaver;
       case '.':
         dotted = true;
     }

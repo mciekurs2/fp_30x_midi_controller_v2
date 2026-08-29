@@ -53,6 +53,23 @@ LH: | [D3 A3]w | [A2 E3]w |
     expect(find.text('F#4'), findsNothing);
   });
 
+  testWidgets('the same name asked again still hands over', (tester) async {
+    // Mid-slide both names are on screen; a name that never left is one.
+    final score = Score.chord([60], label: 'C4');
+    await pump(tester, StaffNames(score: score));
+    expect(find.text('C4'), findsOneWidget);
+
+    // A rebuild that asks for nothing new: the name stays put.
+    await tester.pumpWidget(app(StaffNames(score: score)));
+    await tester.pump(const Duration(milliseconds: 16));
+    expect(find.text('C4'), findsOneWidget);
+
+    // The next ask is the same note. It still slides in over the last one.
+    await tester.pumpWidget(app(StaffNames(score: score, turn: 1)));
+    await tester.pump(const Duration(milliseconds: 16));
+    expect(find.text('C4'), findsNWidgets(2));
+  });
+
   testWidgets('one row per stave, and none for an empty score', (tester) async {
     await pump(tester, StaffNames(score: Score.song(song, PlayHands.both)));
     expect(find.text('F#4'), findsOneWidget);

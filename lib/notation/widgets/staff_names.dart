@@ -19,6 +19,7 @@ class StaffNames extends StatelessWidget {
     super.key,
     required this.score,
     this.cursor = 0,
+    this.turn = 0,
     this.color,
   });
 
@@ -29,6 +30,15 @@ class StaffNames extends StatelessWidget {
   /// 340 ms scroll lands, which left the name a whole scroll behind the note
   /// it names.
   final int cursor;
+
+  /// Which ask this is, counting up as the round deals them.
+  ///
+  /// The name hands over when what it names changes, and two asks running can
+  /// be the same keys — a chord struck twice, or the same note dealt again —
+  /// which by name alone is no change at all, so the label sat still where the
+  /// staff had plainly moved on. Centred modes never move their cursor, so this
+  /// is the only thing that separates one ask from the next there.
+  final int turn;
 
   final Color? color;
 
@@ -66,6 +76,7 @@ class StaffNames extends StatelessWidget {
                     voice: column.voices.elementAtOrNull(i),
                     captioned: score.hasCaptions,
                     color: tint,
+                    ask: (cursor, turn),
                   ),
               ],
             ),
@@ -83,12 +94,16 @@ class _NameRow extends StatelessWidget {
     required this.voice,
     required this.captioned,
     required this.color,
+    required this.ask,
   });
 
   final double width;
   final ScoreVoice? voice;
   final bool captioned;
   final Color color;
+
+  /// Which ask this row is naming, so the same name asked again still slides.
+  final Object ask;
 
   @override
   Widget build(BuildContext context) {
@@ -104,7 +119,7 @@ class _NameRow extends StatelessWidget {
         Opacity(opacity: 0, child: _rowType(' ', captioned, color)),
         SlidingLabel(
           width: width,
-          slot: (label, caption),
+          slot: (ask, label, caption),
           child: label == null
               ? null
               : _rowType(label, captioned, color, caption: caption ?? ''),

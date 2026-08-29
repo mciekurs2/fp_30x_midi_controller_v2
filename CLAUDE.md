@@ -39,6 +39,19 @@ flutter run -d <device>         # android, ios, macos, windows (no linux/web)
 
 `build_runner` 2.15 dropped `--delete-conflicting-outputs`; it is ignored if passed.
 
+A **SMuFL glyph's ink width** (the second field of `MusicSymbol`) can be measured straight off
+`assets/fonts/Bravura.otf` rather than looked up: rasterise it and take the mask's bounding
+box. The noteheads, accidentals and flags already in the enum reproduce exactly this way, so a
+new glyph measured the same way is on the same footing. (The rest entries do not — they came
+from v1 and run narrower than the drawn ink.)
+
+```python
+from PIL import ImageFont
+f = ImageFont.truetype('assets/fonts/Bravura.otf', 1000)  # 1 em = 4 staff spaces
+bb = f.getmask(chr(0xE242), mode='L').getbbox()
+print((bb[2] - bb[0]) / 1000 * 4)                         # flag16thUp -> 1.116
+```
+
 `*.g.dart` is committed, so a fresh clone builds without generating first.
 
 ## Architecture
@@ -131,6 +144,12 @@ The **name row follows the cursor, not the scroll.** `layout.base` is the animat
 position floored, so in sheet music it only reaches the new column when the 340 ms scroll
 lands; reading it left the name a whole scroll behind the note it names. Centred modes have no
 scroll, which is why only sheet music showed it.
+
+It hands over on the **ask**, not on the name (`StaffNames.turn`, fed `hits`). Two asks running
+can be the same keys — a chord struck twice, the same note dealt again — which by name alone is
+no change at all, so the label sat still where the staff had plainly moved on. The centred
+modes never move their cursor, so there the turn is the only thing separating one ask from the
+next. `hits` steps exactly when a target is dealt, so a miss still leaves the name where it is.
 
 Each hand's name row is captioned with **its own** chord, if its own notes spell one — the
 staff never names a harmony across the hands. `blue.song`'s left hand is dyads throughout and
@@ -237,8 +256,10 @@ LH: | [D3 A3]w | [A2 E3]w |           # chords bracketed; w = whole note
 - **`RH:` / `LH:`** — one hand each, either may be omitted. Repeated lines append.
 - **Pitch** `C4` (middle C = MIDI 60). Accidentals are **key-implicit**: write one (`F#4`,
   `Eb3`, `Fn4` for a natural) only to *depart* from the signature.
-- **Chords** `[C4 E4 G4]`; **rests** `R`; **durations** suffix `w`/`h`/`q`/`e` (default
-  quarter), trailing `.` dots it.
+- **Chords** `[C4 E4 G4]`; **rests** `R`; **durations** suffix `w`/`h`/`q`/`e`/`s` (default
+  quarter), trailing `.` dots it. No ties and no double dots, so a note held past one value —
+  `blue.song` bar 5's half tied over a dotted quarter — is written as the nearest single
+  value.
 - `|` and whitespace are optional separators; the written `|` is cosmetic.
 - A malformed chart raises `SongFormatException` with the line and token, and
   `SongRepository` leaves it out of the library rather than taking a round down with it.
@@ -247,10 +268,13 @@ LH: | [D3 A3]w | [A2 E3]w |           # chords bracketed; w = whole note
 
 `blue.song` is a **hybrid arrangement**, and the pattern is worth reusing: the left hand is
 transcribed as written, and the right hand is thinned to only the notes sounding at each
-left-hand strike. A published piano-vocal arrangement's right hand is a sung melody in
+left-hand strike — **except where the score ties or dots a note**, which is written held
+rather than re-struck, leaving the left hand to strike alone underneath it. A published piano-vocal arrangement's right hand is a sung melody in
 sixteenths against a half-note bass — unplayable as a reading drill, and it leaves most
-columns with one hand on them. Thinning it puts both hands on every column, which is what
-makes `PlayHands.both` playable. `song_parser_test.dart` guards that invariant.
+columns with one hand on them. Thinning it puts both hands on most columns, which is what
+makes `PlayHands.both` playable; a held note is the deliberate exception, and
+`song_parser_test.dart` names every column where one hand stands alone, so a bar drifting out
+of step fails rather than passing as another hold.
 
 ## Conventions
 
@@ -289,9 +313,18 @@ instead would drift from `staffSpace`, which the whole notation is a fraction of
 are a separate widget sized in staff units of their own, so they do not follow it.
 - **Layout changes need a 360 dp widget test** that applies `withTextScale`, or an overflow
   will not be caught.
-- **`AnimatedSwitcher` keys must be value-equal.** Never key one on a `List`, a `Set` or a
-  freshly-built object — see *What the staff animates*. `staff_view_test.dart` guards this by
-  counting painters mid-frame.
+- **`AnimatedSwitcher` keys must be value-equal, and must never repeat.** Never key one on a
+  `List`, a `Set` or a freshly-built object — see *What the staff animates*.
+  `staff_view_test.dart` guards this by counting painters mid-frame.
+- **Never `AnimatedSwitcher`'s default `transitionBuilder`** — pass `fadeLayer`
+  (`notation/widgets/layer_switcher.dart`) or another builder that keys nothing. The default
+  keys its fade on the child's own key, and `KeyedSubtree.wrap` keys each entry on that, so a
+  child returning under a key it has worn before — while that earlier entry is still fading —
+  puts two identical keys in the switcher's `Stack`: *Duplicate keys found*. Every layer here
+  is keyed on what it draws and every one of them folds back on itself when the round is
+  played quickly: a clef two targets later, the readout emptying between two presses. It only
+  throws under speed, which is why it survived to the device. `staff_view_test.dart` and
+  `home_page_test.dart` each drive a layer faster than its 200 ms exit.
 
 ## Not yet ported (deliberately)
 

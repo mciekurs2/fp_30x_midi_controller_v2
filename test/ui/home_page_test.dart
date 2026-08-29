@@ -169,6 +169,26 @@ void main() {
     (i) => 21 + i,
   ).firstWhere((note) => !correct.contains(note));
 
+  testWidgets('playing faster than the readout can fade does not throw', (
+    tester,
+  ) async {
+    await pump(tester);
+    final notes = container.read(noteSourceProvider.notifier);
+    await tap(tester, find.text('Play'));
+
+    // Press and release well inside the readout's 200 ms fade, so several are
+    // in flight at once and the empty readout is asked for again while the
+    // last empty one is still leaving.
+    for (var i = 0; i < 8; i++) {
+      notes.play(NotePressed(60 + i, 80));
+      await tester.pump(const Duration(milliseconds: 15));
+      notes.play(NoteReleased(60 + i));
+      await tester.pump(const Duration(milliseconds: 15));
+      expect(tester.takeException(), isNull, reason: 'press $i');
+    }
+    await tester.pumpAndSettle();
+  });
+
   testWidgets('the readout marks a right hand in every mode', (tester) async {
     await pump(tester);
     final notes = container.read(noteSourceProvider.notifier);

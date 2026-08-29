@@ -53,6 +53,26 @@ void main() {
     expect(tester.getRect(lines).size, _phone);
   });
 
+  testWidgets('a layer coming back mid-exit does not collide', (tester) async {
+    // Played fast enough, a layer is asked for again before it has finished
+    // fading out. Keyed on its value alone, the outgoing and incoming children
+    // carry the same key and the switcher asserts: Duplicate keys found.
+    // Targets that alternate clef, which single-note mode deals as soon as the
+    // octaves span middle C.
+    final treble = Score.chord([72], label: 'C5');
+    final bass = Score.chord([40], label: 'E2');
+    await pump(tester, StaffView(score: treble));
+
+    // Keys down and up again well inside the 200 ms exit, so several fades are
+    // in flight at once and one of them is answered by the key it started on.
+    for (var i = 0; i < 8; i++) {
+      await tester.pumpWidget(app(StaffView(score: i.isEven ? bass : treble)));
+      await tester.pump(const Duration(milliseconds: 15));
+      expect(tester.takeException(), isNull, reason: 'press $i');
+    }
+    await tester.pumpAndSettle();
+  });
+
   testWidgets('a wrong press does not re-animate the target', (tester) async {
     final target = Score.chord([60, 64, 67], label: 'C');
     await pump(tester, StaffView(score: target));

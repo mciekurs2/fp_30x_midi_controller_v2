@@ -233,5 +233,20 @@ void main() {
       final crotchet = extentOf([60]);
       expect(quaver.right, greaterThan(crotchet.right));
     });
+
+    test('a semiquaver takes the double-hooked flag, and is measured by it', () {
+      expect(
+        NoteValue.semiquaver.flag(stemDown: false),
+        MusicSymbol.flag16thUp,
+      );
+      expect(
+        NoteValue.semiquaver.flag(stemDown: true),
+        MusicSymbol.flag16thDown,
+      );
+      expect(
+        extentOf([60], value: NoteValue.semiquaver).right,
+        greaterThan(extentOf([60]).right),
+      );
+    });
   });
 }

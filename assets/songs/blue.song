@@ -25,11 +25,14 @@ LH: [G2 D3 G3]h    [G2 D3 G3]q    [G2 D3 G3]q
 RH: [B3 D4 E4 F4]h [B3 D4 E4 F4]q D4q
 LH: [G2 D3 G3]h    [G2 D3 G3]q    [G2 D3 F3]q
 
-# Bars 5-8, verse. From here the right hand is the thinned melody line.
-RH: B3h         B3q         B3q
+# Bars 5-8, verse. From here the right hand is the thinned melody line - but a
+# note the score ties or dots is held, not re-struck, so from here the left
+# hand strikes alone underneath it. Bar 5's semiquaver A3-G3 pickup is not
+# transcribed, and nor is any tie across a barline: the format has neither.
+RH: B3w
 LH: [G2 D3 G3]h [G2 D3 G3]q [G2 D3 G3]q
 
-RH: B3h          B3q          D4q
+RH: B3h.                      D4q
 LH: [G2 D3 F3]h  [G2 D3 F3]q  [G2 D3 F3]q
 
 RH: [B3 D4]h    [B3 D4 F4]q  E4q
@@ -39,7 +42,7 @@ RH: [B3 D4]h    [D4 F4 D5]q [D4 F4 B4]q
 LH: [G2 D3 F3]h [G2 D3 F3]q [G2 D3 F3]q
 
 # Bars 9-12. Am7, then D - the left hand moves to half-note dyads.
-RH: [C4 G4 B4]h [C4 G4 B4]h
+RH: [C4 G4 B4]w
 LH: [E3 A3]h    [E3 A3]h
 
 RH: [C4 G4 B4]h [E4 G4 D5]h
@@ -48,16 +51,16 @@ LH: [E3 A3]h    [E3 A3]h
 RH: [D4 F4 B4]h [D4 F4 A4]h
 LH: [D3 A3]h    [D3 A3]h
 
-# The written right hand rests on beat 3 here; it re-strikes what it was
-# holding, which is what the pedal does anyway.
-RH: [D4 F4 A4]h [D4 F4 A4]h
+# The right hand is tied in from bar 11 and rests on beat 3, so it holds until
+# the D4 that leads back into the verse.
+RH: [D4 F4 A4]h.            D4q
 LH: [D3 A3]h    [D3 A3]h
 
 # Bars 13-16 repeat the verse.
-RH: B3h         B3q         B3q
+RH: B3w
 LH: [G2 D3 G3]h [G2 D3 G3]q [G2 D3 G3]q
 
-RH: B3h          B3q          D4q
+RH: B3h.                      D4q
 LH: [G2 D3 F3]h  [G2 D3 F3]q  [G2 D3 F3]q
 
 RH: [B3 D4]h    [B3 D4 F4]q  E4q
@@ -66,7 +69,8 @@ LH: [G2 D3 G3]h [G2 D3 G3]q  [G2 D3 G3]q
 RH: B3h         [D4 F4 D5]q [D4 F4 B4]q
 LH: [G2 D3 F3]h [G2 D3 F3]q [G2 D3 F3]q
 
-# Bars 17-20. Bar 20 holds a tied chord across both strikes.
+# Bars 17-20, written as a repeat of 9-12 but for bar 17: where bar 9 ties its
+# chord across beat 3, bar 17 strikes it again. Bar 20 holds its chord.
 RH: [C4 G4 B4]h [C4 G4 B4]h
 LH: [E3 A3]h    [E3 A3]h
 
@@ -76,5 +80,5 @@ LH: [E3 A3]h    [E3 A3]h
 RH: [D4 F4 B4]h [D4 F4 A4]h
 LH: [D3 A3]h    [D3 A3]h
 
-RH: [D4 F4 A4]h [D4 F4 A4]h
+RH: [D4 F4 A4]w
 LH: [D3 A3]h    [D3 A3]h

@@ -12,6 +12,8 @@ enum MusicSymbol {
   noteheadBlack('\uE0A4', 1.18),
   flag8thUp('\uE240', 1.056),
   flag8thDown('\uE241', 1.224),
+  flag16thUp('\uE242', 1.116),
+  flag16thDown('\uE243', 1.164),
   accidentalFlat('\uE260', 0.904),
   accidentalNatural('\uE261', 0.672),
   accidentalSharp('\uE262', 0.996),
@@ -19,6 +21,7 @@ enum MusicSymbol {
   restHalf('\uE4E4', 1.128),
   restQuarter('\uE4E5', 0.612),
   rest8th('\uE4E6', 0.632),
+  rest16th('\uE4E7', 1.28),
   augmentationDot('\uE1E7', 0.3);
 
   const MusicSymbol(this.char, this.width);
@@ -42,15 +45,21 @@ extension NoteValueGlyph on NoteValue {
   MusicSymbol get notehead => switch (this) {
     NoteValue.semibreve => MusicSymbol.noteheadWhole,
     NoteValue.minim => MusicSymbol.noteheadHalf,
-    NoteValue.crotchet || NoteValue.quaver => MusicSymbol.noteheadBlack,
+    NoteValue.crotchet ||
+    NoteValue.quaver ||
+    NoteValue.semiquaver => MusicSymbol.noteheadBlack,
   };
 
-  /// The flag at the stem's tip, or `null` where the value carries none.
-  MusicSymbol? flag({required bool stemDown}) => this != NoteValue.quaver
-      ? null
-      : stemDown
-      ? MusicSymbol.flag8thDown
-      : MusicSymbol.flag8thUp;
+  /// The flag at the stem's tip, or `null` where the value carries none. A
+  /// semiquaver's is the double-hooked one; nothing here beams, so every
+  /// flagged note carries its own.
+  MusicSymbol? flag({required bool stemDown}) => switch (this) {
+    NoteValue.quaver =>
+      stemDown ? MusicSymbol.flag8thDown : MusicSymbol.flag8thUp,
+    NoteValue.semiquaver =>
+      stemDown ? MusicSymbol.flag16thDown : MusicSymbol.flag16thUp,
+    _ => null,
+  };
 
   /// The semibreve is the one value drawn without a stem.
   bool get stemmed => this != NoteValue.semibreve;
@@ -71,6 +80,7 @@ extension NoteValueGlyph on NoteValue {
     NoteValue.minim => MusicSymbol.restHalf,
     NoteValue.crotchet => MusicSymbol.restQuarter,
     NoteValue.quaver => MusicSymbol.rest8th,
+    NoteValue.semiquaver => MusicSymbol.rest16th,
   };
 }
 

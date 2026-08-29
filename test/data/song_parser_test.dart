@@ -77,16 +77,20 @@ RH: F4
 
   group('events', () {
     test('durations and dots', () {
-      final voice = parseSong('RH: C4w D4h E4 F4e G4.').rh!;
+      final voice = parseSong('RH: C4w D4h E4 F4e A4s G4.').rh!;
       expect(voice.map((e) => e.value), [
         NoteValue.semibreve,
         NoteValue.minim,
         NoteValue.crotchet,
         NoteValue.quaver,
+        NoteValue.semiquaver,
         NoteValue.crotchet,
       ]);
       expect(voice.last.dotted, isTrue);
       expect(voice.last.ticks, 36); // a dotted crotchet
+      // The tick grid carries a dotted semiquaver whole, which is what fixes
+      // it at 24 to the crotchet.
+      expect(parseSong('RH: C4s.').rh!.single.ticks, 9);
     });
 
     test('chords are bracketed, rests are R', () {
@@ -220,24 +224,43 @@ RH: F4
       }
     });
 
-    test('Blue strikes both hands on every column', () async {
-      // The hybrid arrangement's whole point: the right hand is thinned to the
-      // left hand's onsets, so a column with only one hand on it means a bar
-      // has drifted out of step.
+    test('Blue leaves a hand alone only where the score holds', () async {
+      // The right hand is thinned to the left hand's onsets, except where the
+      // score ties or dots a note: there it is written held, and the left hand
+      // strikes alone under it. Those columns are named here, so a bar
+      // drifting out of step still fails rather than passing as another hold.
       final song = parseSong(await _readAsset('assets/songs/blue.song'));
       expect(song.hands, {Hand.right, Hand.left});
 
+      final alone = <int>[];
       for (final column in song.columns) {
         for (final hand in Hand.values) {
           final event = column.eventFor(hand);
-          expect(
-            event,
-            isNotNull,
-            reason: 'tick ${column.tick} has no $hand',
-          );
-          expect(event!.isRest, isFalse, reason: 'tick ${column.tick}');
+          if (event == null) {
+            alone.add(column.tick);
+            continue;
+          }
+          expect(event.isRest, isFalse, reason: 'tick ${column.tick}');
         }
+        expect(
+          column.rh ?? column.lh,
+          isNotNull,
+          reason: 'tick ${column.tick} has neither hand',
+        );
       }
+      // 96 ticks to the bar: the held notes of bars 5, 6, 9, 12, 13, 14 and
+      // 20, plus bar 12's beat-4 pickup, which the left hand sits out.
+      expect(alone, [
+        432, 456, // bar 5, B3 held through
+        528, // bar 6, a dotted half
+        816, // bar 9, the chord tied across beat 3
+        1104, 1128, // bar 12, held to beat 3 and then the D4 alone
+        1200, 1224, // bar 13
+        1296, // bar 14
+        // No bar 17: it strikes its chord again where bar 9 ties across.
+        1872, // bar 20, holding its chord to the end
+      ]);
+
       // 20 bars of 4/4, and every bar starts one.
       expect(song.columns.where((c) => c.startsBar), hasLength(20));
     });

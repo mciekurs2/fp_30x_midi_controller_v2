@@ -24,13 +24,19 @@ class GameNames extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final asked = ref.watch(
       gameControllerProvider.select(
-        (game) => (score: game.staff, cursor: game.cursor),
+        // `hits` counts the asks: the cursor alone stands still in every mode
+        // but sheet music, and even there a chord can be asked for twice.
+        (game) => (score: game.staff, cursor: game.cursor, turn: game.hits),
       ),
     );
     final lift = asked.score.staves.length > 1 ? 0.0 : oneStaveLift;
     return Padding(
       padding: nameInset.copyWith(bottom: nameInset.bottom + lift),
-      child: StaffNames(score: asked.score, cursor: asked.cursor),
+      child: StaffNames(
+        score: asked.score,
+        cursor: asked.cursor,
+        turn: asked.turn,
+      ),
     );
   }
 }

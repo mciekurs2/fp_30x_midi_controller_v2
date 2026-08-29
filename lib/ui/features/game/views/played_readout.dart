@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import '../../../../domain/models/chord_identifier.dart';
+import '../../../../notation/widgets/layer_switcher.dart';
 import '../../../core/theme/app_theme.dart';
 import '../view_models/game_controller.dart';
 import '../view_models/note_source.dart';
@@ -43,6 +44,9 @@ class PlayedReadout extends ConsumerWidget {
       reverseDuration: const Duration(milliseconds: 200),
       switchInCurve: Curves.easeOutCirc,
       switchOutCurve: Curves.easeInCubic,
+      // Never the default builder: the readout empties between presses, so
+      // `nothing` comes back under a key it has worn before.
+      transitionBuilder: fadeLayer,
       child: name == null
           ? const SizedBox.shrink(key: ValueKey('nothing'))
           : Text(
